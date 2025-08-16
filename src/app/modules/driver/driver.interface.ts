@@ -1,0 +1,71 @@
+
+import { Document, Types } from "mongoose";
+import { IUser } from "../user/user.interface";
+
+export interface IVehicleInfo {
+    make: string;
+    model: string;
+    year: number;
+    plateNumber: string;
+    color?: string;
+}
+
+export interface ILocation {
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
+    address?: string;
+    lastUpdated: Date;
+}
+
+
+export interface IDriver extends Document {
+    _id: Types.ObjectId;
+    user: Types.ObjectId | IUser;
+    licenseNumber: string;
+    vehicleInfo: IVehicleInfo;
+    status: 'pending' | 'approved' | 'suspended' | 'rejected';
+    availability: 'online' | 'offline' | 'busy';
+    location?: ILocation;
+    earnings: IEarnings;
+    rating: IRating;
+    documents?: IDocuments;
+    activeRide?: Types.ObjectId;
+    approvedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+    updateLocation(longitude: number, latitude: number, address?: string): Promise<IDriver>;
+    updateEarnings(amount: number): Promise<IDriver>;
+    setAvailability(status: 'online' | 'offline' | 'busy'): Promise<IDriver>; 
+}
+
+export interface IEarnings {
+    totalEarnings: number;
+    weeklyEarnings: number;
+    monthlyEarnings: number;
+    lastResetDate: Date;
+}
+
+export interface IRating {
+    average: number;
+    totalRatings: number;
+}
+
+export interface IDocuments {
+    licenseImage?: string;
+    vehicleRegistration?: string;
+    insurance?: string;
+}
+
+export interface IDriverUpdate {
+    availability?: 'online' | 'offline';
+    location?: {
+        longitude: number;
+        latitude: number;
+        address?: string;
+    };
+}
+
+export interface IDriverStatusUpdate {
+    status: 'approved' | 'rejected' | 'suspended';
+    reason?: string;
+}
