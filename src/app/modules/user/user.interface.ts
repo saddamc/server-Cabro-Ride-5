@@ -6,15 +6,6 @@ export enum Role {
   rider = "rider",
   driver = "driver",
 }
-
-export interface IVehicleInfo {
-  Type: string;
-  Brand: string;  
-  Model: string;
-  plateNumber: string;
-  color: string;
-}
-
 export interface IAuthProvider {
   provider: "google" | "credentials"; 
   providerId: string;

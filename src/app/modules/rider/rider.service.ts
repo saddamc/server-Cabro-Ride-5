@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-
- 
 import httpStatus from 'http-status-codes';
 import AppError from "../../errorHelpers/AppError";
 import { AuthRequest } from '../auth/auth.interface';
@@ -12,7 +10,7 @@ import { Ride } from './rider.model';
 
 
 // ✅ Request Ride
-const requestRide = async (req: AuthRequest, res: Response): Promise<IRide> => {
+const requestRide = async (req: AuthRequest): Promise<IRide> => {
     
     const { pickupLocation, destinationLocation, notes }: IRideRequest = req.body;
     const user = req.body.rider;    

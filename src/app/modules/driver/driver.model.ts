@@ -1,13 +1,13 @@
 import { model, Schema } from 'mongoose';
 
 
-import { IDocuments, IDriver, IEarnings, ILocation, IRating, IVehicleInfo, } from './driver.interface';
+import { IDocuments, IDriver, IEarnings, ILocation, IRating, IVehicleType } from './driver.interface';
 
-const VehicleInfoSchema = new Schema<IVehicleInfo>({
-  make: { type: String, required: true },
+const VehicleInfoSchema = new Schema<IVehicleType>({
+  make: { type: String, },
   model: { type: String, required: true },
   year: { type: Number, required: true },
-  plateNumber: { type: String, required: true },
+  plateNumber: { type: String, unique:true, required: true },
   color: {type:String}
 });
 
@@ -44,7 +44,7 @@ const DriverSchema = new Schema<IDriver>(
     {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     licenseNumber: { type: String, required: true, unique: true },
-    vehicleInfo: { type: VehicleInfoSchema, required: true },
+    vehicleType: { type: VehicleInfoSchema},
     status: {
         type: String,
         enum: ['pending', 'approved', 'suspended', 'rejected'],

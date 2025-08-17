@@ -26,7 +26,7 @@ router.get("/google", async (req: Request, res: Response, next: NextFunction) =>
 
 router.get("/google/callback", passport.authenticate("google", { failureRedirect: `${envVars.FRONTEND_URL}?error=There is some issues with your account. Please contact with out support team! ` }), AuthControllers.googleCallbackController) 
 
-router.patch("/apply-driver", checkAuth(...Object.values(Role)), AuthControllers.applyDriver)
+// router.patch("/apply-driver", checkAuth(...Object.values(Role)), AuthControllers.applyDriver)
 
 
 export const AuthRoutes = router;

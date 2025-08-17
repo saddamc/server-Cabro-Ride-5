@@ -12,7 +12,6 @@ import { sendResponse } from "../../utils/sendResponse";
 import { setAuthCookie } from "../../utils/setCookie";
 import { createUserTokens } from "../../utils/userToken";
 import { User } from "../user/user.model";
-import { AuthRequest } from './auth.interface';
 import { AuthServices } from "./auth.service";
 
 // ✅✅ credentialsLogin/Google Login
@@ -198,24 +197,24 @@ const googleCallbackController = catchAsync(async (req: Request, res: Response, 
 });
   
 // ✅ applyDriver
-const applyDriver = catchAsync(async (req: Request, res: Response) => {
+// const applyDriver = catchAsync(async (req: Request, res: Response) => {
+// const userFromToken = req.user as JwtPayload; 
+  
+//   const payload: IDriver = {
+//     ...req.body,
+//     user: userFromToken.userId,
+//   };
 
-  const payload: AuthRequest = {
-    ...req.body,
-    // documents: req.file?.path
-  }
+//   const result = await AuthServices.applyDriver(payload);
+  
 
-  // const id = req.body.userId; // Adjust as needed based on your authentication logic
-
-  const result = await AuthServices.applyDriver(payload);
-
-  sendResponse(res, {
-    statusCode: 201,
-    success: true,
-    message: "Driver application submitted successfully",
-    data: result,
-  });
-})
+//   sendResponse(res, {
+//     statusCode: 201,
+//     success: true,
+//     message: "Driver application submitted successfully",
+//     data: result,
+//   });
+// })
 
 
 
@@ -228,5 +227,5 @@ export const AuthControllers = {
   forgotPassword,
   userVerification,
   googleCallbackController,
-  applyDriver
+  // applyDriver,
 };

@@ -6,11 +6,11 @@ export const driverValidationSchema = z.object({
     message: 'Invalid user ObjectId',
     }),
     licenseNumber: z.string().min(3, { message: 'License number is required' }),
-    vehicleInfo: z.object({
-    type: z.string().min(1, { message: 'Vehicle type is required' }),
-    brand: z.string().min(1, { message: 'Brand is required' }),
-    model: z.string().min(1, { message: 'Model is required' }),
-    plateNumber: z.string().min(1, { message: 'Plate number is required' }),
+    vehicleType: z.object({
+        type: z.string().min(1, { message: 'Vehicle type is required' }),
+        brand: z.string().min(1, { message: 'Brand is required' }),
+        model: z.string().min(1, { message: 'Model is required'} ),
+        plateNumber: z.string().min(1, { message: 'Plate number is required' }),
     }),
     status: z.enum(['pending', 'approved', 'suspended', 'rejected']).default('pending'),
     availability: z.enum(['online', 'offline', 'busy']).default('offline'),

@@ -7,10 +7,8 @@ import { sendEmail } from "../../utils/sendEmail";
 import {
   createNewAccessTokenWithRefreshToken
 } from "../../utils/userToken";
-import { Driver } from "../driver/driver.model";
-import { IAuthProvider, IsActive, Role } from "../user/user.interface";
+import { IAuthProvider, IsActive } from "../user/user.interface";
 import { User } from './../user/user.model';
-import { AuthRequest } from "./auth.interface";
 
 
 // ✅ getNewAccessToken
@@ -159,117 +157,89 @@ const setPassword = async (userId: string, password: string) => {
 
 }
 
-// ✅ updateProfile
-// export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+// ✅ Apply Driver
+// const applyDriver = async (payload: IDriver) => {
+//   const session = await Driver.startSession();
+//   session.startTransaction();
+//   console.log("payload new ✅:", payload )
+  
+
 //   try {
-//     const { name, phone, profileImage, applyForDriver, vehicleInfo, licenseNumber } = req.body;
-//     const userId = req.user?._id;
+//     const { user, licenseNumber, vehicleType } = payload;
+//     console.log("driver ID 100 ✅:", user);
+    
+//     const plateNum = payload.vehicleType?.plateNumber
+//     console.log("TEST ✅:", plateNum);
 
-//     const updateData: any = {};
-//     if (name) updateData.name = name;
-//     if (phone) updateData.phone = phone;
-//     if (profileImage) updateData.profileImage = profileImage;
+//     const inputId = payload.id
+//     console.log("Input ID 2 ✅:", inputId);
 
-//     const user = await User.findByIdAndUpdate(
-//       userId,
-//       updateData,
-//       { new: true, runValidators: true }
-//     );
-
-//     // Handle driver application
-//     if (applyForDriver && user?.role === 'rider') {
-//       if (!vehicleInfo || !licenseNumber) {
-//         throw new AppError(httpStatus.EXPECTATION_FAILED, "Vehicle information and license number are required to apply for driver role")
-//         // return;
-//       }
-
-//       // Check if driver profile already exists
-//       const existingDriver = await Driver.findOne({ user: userId });
-//       if (existingDriver) {
-//         throw new AppError(httpStatus.EXPECTATION_FAILED, "Driver application already exists")
-//       }
-
-//             // Update user role to driver
-//       if (user) {
-//         try {
-//           user.role = Role.driver;
-//         await user.save();
-//         } catch {
-//           throw new AppError(httpStatus.EXPECTATION_FAILED, "Role change Fail !")
-//         }
-//       }
-
-//       // Create driver profile
-//       const driver = await Driver.create({
-//         user: userId,
-//         licenseNumber,
-//         vehicleInfo,
-//         status: 'pending'
-//       });
-
-//       return driver;
-
-
-
-//      sendResponse(res, {
-//         statusCode: 201,
-//         success: true,
-//         message: 'Driver application submitted successfully. Awaiting admin approval.',
-//        data: {
-//          user,
-//          driverProfile: driver
-//         }
-//     });
-//       return;
+//     if (!(user === inputId)) {
+//       throw new AppError(httpStatus.BAD_REQUEST, "login User & input User is not same User");
 //     }
-//     res.status(200).json({
-//       success: true,
-//       message: 'Profile updated successfully',
-//       data: {
-//         user
-//       }
-//     });
 
-//   } catch (error: any) {
-//     console.error('Update profile error:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to update profile',
-//       error: error.message
-//     });
+//     const currentUser = await User.findById(user).session(session);
+//     console.log("currentUser ID 2 ✅:", currentUser);
+
+//     if (!currentUser) {
+//       throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!");
 //     }
-//   };
+
+//     if (currentUser.role === Role.driver) {
+//       throw new AppError(httpStatus.BAD_REQUEST, "You are already a Driver!");
+//     }
+
+//     const existingDriver = await Driver.findOne({ user }).session(session);
+//     console.log("curDriver ID 2 ✅:", existingDriver);
+
+//     if (existingDriver) {
+//       throw new AppError(httpStatus.BAD_REQUEST, "You are already a Driver!!");
+//     }
 
 
-const applyDriver = async (payload: AuthRequest) => {
 
-  const { user } = payload;
-  console.log("driver ID ✅:", user)
 
-  const currentUser = await User.findById({ _id: user})
-  
-  const newCurrentUser = currentUser?._id.toString()
-  // console.log("User ID - 2 ✅:", newCurrentUser)
+    
 
-    if (!currentUser) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!")
-  }
+//     // const { licenseNumber, vehicleInfo } = payload.body;
+//     // console.log("payload ID 1 ✅:", payload.body);
 
-  const existingDriver = await Driver.findOne({ driver: payload.driver });
-    if (existingDriver) {
-        throw new AppError(httpStatus.EXPECTATION_FAILED, "Driver application already exists")
-  }
+//     if (!licenseNumber || !vehicleType) {
+//       throw new AppError(httpStatus.BAD_REQUEST, "Missing required fields: licenseNumber and/or vehicleInfo");
+//     }
 
-    if (user === newCurrentUser && currentUser) {
-    currentUser.role = Role.driver
-    await currentUser.save();
-  }
+//     // ✅ Update role inside transaction
+//     currentUser.role = Role.driver;
+//     await currentUser.save({ session });
 
-  const driverDocs = await Driver.create(payload)
-  
-  return driverDocs;
+//   //   if (!payload.vehicleType?.plateNumber) {
+//   // throw new AppError(httpStatus.BAD_REQUEST, "Plate number is required");
+//   //   }
+    
+//   //   if (!payload.licenseNumber) {
+//   //     throw new AppError(httpStatus.BAD_REQUEST, "License number is required");
+//   //   }
 
-}
+//     // ✅ Create driver doc with correct shape
+//     const driverDocs = await Driver.create([{
+//       user: currentUser._id,
+//       licenseNumber,
+//       vehicleType
+//     }], { session });
+//     console.log("driver ID 5 ✅:", driverDocs);
+
+//     // ✅ Commit if all good
+//     await session.commitTransaction();
+//     session.endSession();
+
+//     return driverDocs[0];
+//   } catch (error) {
+//     // ❌ Rollback all changes
+//     await session.abortTransaction();
+//     session.endSession();
+//     throw error; // Let error handler send response
+//   }
+// };
   
   export const AuthServices = {
     getNewAccessToken,
@@ -277,5 +247,5 @@ const applyDriver = async (payload: AuthRequest) => {
     forgotPassword,
     setPassword,
     userVerification,
-    applyDriver,
+    // applyDriver,
   };

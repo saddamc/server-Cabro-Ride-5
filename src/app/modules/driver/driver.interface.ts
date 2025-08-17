@@ -2,7 +2,7 @@
 import { Document, Types } from "mongoose";
 import { IUser } from "../user/user.interface";
 
-export interface IVehicleInfo {
+export interface IVehicleType {
     make: string;
     model: string;
     year: number;
@@ -22,7 +22,7 @@ export interface IDriver extends Document {
     _id: Types.ObjectId;
     user: Types.ObjectId | IUser;
     licenseNumber: string;
-    vehicleInfo: IVehicleInfo;
+    vehicleType: IVehicleType;
     status: 'pending' | 'approved' | 'suspended' | 'rejected';
     availability: 'online' | 'offline' | 'busy';
     location?: ILocation;
