@@ -9,6 +9,7 @@ import { RideService } from './rider.service';
 
 // ✅ Request Ride
 export const requestRide = catchAsync(async (req: Request, res: Response) => {
+    const id = req.params
     const result = await RideService.requestRide(req as any);
 
     sendResponse(res, {

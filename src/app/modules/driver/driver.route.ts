@@ -9,11 +9,14 @@ import { DriverController } from "./driver.controller";
 const router = Router();
 
 
-router.patch("/apply-driver", checkAuth(...Object.values(Role)), DriverController.applyDriver)
+router.post("/apply-driver", checkAuth(...Object.values(Role)), DriverController.applyDriver)
 
-router.post("/setOnlineOffline/:id", checkAuth(...Object.values(Role)), DriverController.setOnlineOffline)
+router.post("/online-offline/:id", checkAuth(...Object.values(Role)), DriverController.setOnlineOffline)
+
+router.post("/accept-ride/:id", checkAuth(...Object.values(Role)), DriverController.acceptRide)
 
 router.post("/status/:id", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
+
 
 
 

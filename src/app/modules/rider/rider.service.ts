@@ -10,12 +10,13 @@ import { Ride } from './rider.model';
 
 
 // ✅ Request Ride
-const requestRide = async (req: AuthRequest): Promise<IRide> => {
+const requestRide = async (req: AuthRequest, id:string): Promise<IRide> => {
     
     const { pickupLocation, destinationLocation, notes }: IRideRequest = req.body;
     const user = req.body.rider;    
 
-    const currentUser = await User.findById({ _id: user})
+    const currentUser = await User.findById(id)
+     console.log("User ID - 2 ✅:", currentUser)
     
     const newCurrentUser = currentUser?._id.toString()
       // console.log("User ID - 2 ✅:", newCurrentUser)
@@ -59,7 +60,7 @@ const requestRide = async (req: AuthRequest): Promise<IRide> => {
 const cancelRide = async (id: string, payload: IRide,) => {
     
     const user = payload.id
-    console.log("Cancel Ride ID✅:", user);
+    // console.log("Cancel Ride ID✅:", user);
 
     const ride = await Ride.findById(user);
     if (!ride) {

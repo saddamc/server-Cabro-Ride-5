@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
  
 import { Request, Response } from 'express';
+import httpStatus from "http-status-codes";
 import { JwtPayload } from 'jsonwebtoken';
+import AppError from '../../errorHelpers/AppError';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
 import { IDriver } from './driver.interface';
@@ -56,8 +59,33 @@ const setOnlineOffline = catchAsync(async (req: Request, res: Response) => {
         });
 })
 
+// ✅ Accept Ride
+const acceptRide = catchAsync(async (req: Request, res: Response):Promise<any> => {
+    const { id } = req.params; 
+    const driverId = (req.user as any)?.userId;
+    // console.log("driverId ✅:", id)
+  
+  if (!id) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Ride ID is required")
+    }
+  
+    if (!driverId) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Driver ID is required")
+    }
+  
+    const result = await DriverService.acceptRide(id, driverId);
+  
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Ride accepted successfully ✅",
+      data: result,
+    });
+  });
+
 export const DriverController = {
     setOnlineOffline,
     approvedDriver,
-    applyDriver
+    applyDriver,
+    acceptRide,
 };

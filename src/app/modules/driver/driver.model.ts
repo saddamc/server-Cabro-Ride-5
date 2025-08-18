@@ -59,7 +59,7 @@ const DriverSchema = new Schema<IDriver>(
     earnings: { type: EarningsSchema, default: () => ({}) },
     rating: { type: RatingSchema, default: () => ({}) },
     documents: { type: DocumentsSchema },
-    activeRide: { type: Schema.Types.ObjectId, ref: 'Ride' },
+    activeRide: { type: Schema.Types.ObjectId, ref: 'Ride', default: null },
     approvedAt: { type: Date },
     },
     { timestamps: true }

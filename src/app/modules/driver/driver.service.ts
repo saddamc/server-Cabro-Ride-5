@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status-codes';
 import AppError from "../../errorHelpers/AppError";
-import { AuthRequest } from '../auth/auth.interface';
 import { Ride } from '../rider/rider.model';
 import { Role } from '../user/user.interface';
 import { User } from '../user/user.model';
@@ -32,11 +31,10 @@ const approvedDriver = async (id: string) => {
         driver.status === "pending"
             ? "approved"
             : driver.status === "approved"
-                ? "rejected"
-                : driver.status === "rejected"
-                    ? "suspended" 
-                : driver.status === "suspended"
-                    ? "approved" : driver.status
+            ? "rejected"
+            : driver.status === "rejected"
+            ? "approved" 
+            : driver.status
 
     const updatedDriver = await Driver.findByIdAndUpdate(
         id,
@@ -89,16 +87,15 @@ try {
     // console.log("Input ID 2 ✅:", inputId);
 
     const currentUser = await User.findById(user).session(session);
-    console.log("currentUser ID 2 ✅:", currentUser);
-
-    // condition for match login user === input user
-    // if (!(user === inputId)) {
-    //     throw new AppError(httpStatus.BAD_REQUEST, "login User & input User is not same User");
-    // }
+    // console.log("currentUser ID 2 ✅:", currentUser);
 
     if (!currentUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!");
     }
+    // condition for match login user === input user
+    // if (!(user === inputId)) {
+    //     throw new AppError(httpStatus.BAD_REQUEST, "login User & input User is not Match");
+    // }  
 
     const existingDriver = await Driver.findOne({ user }).session(session);
     // console.log("curDriver ID 2 ✅:", existingDriver);
@@ -110,14 +107,9 @@ try {
         throw new AppError(httpStatus.BAD_REQUEST, "You are already a Driver!");
     }
 
-
     if (!licenseNumber || !vehicleType) {
         throw new AppError(httpStatus.BAD_REQUEST, "Missing required fields: licenseNumber and/or vehicleInfo");
     }
-
-    // ✅ Update role 
-    currentUser.role = Role.driver;
-    await currentUser.save({ session });
 
     if (!payload.vehicleType?.plateNumber) {
         throw new AppError(httpStatus.BAD_REQUEST, "Plate number is required");
@@ -134,6 +126,10 @@ try {
         vehicleType
     }], { session });
 
+    // ✅ Update role 
+    currentUser.role = Role.driver;
+    await currentUser.save({ session });
+
     await session.commitTransaction();
     session.endSession();
 
@@ -145,46 +141,72 @@ try {
     }
 };
 
-//✅ accept Ride 
-const acceptRide = async (req: AuthRequest, res: Response): Promise<void> => {
+//✅ accept Ride
+const acceptRide = async (id: string, driverId: string) => {
+    const session = await Driver.startSession();
+    session.startTransaction();
 
-    const { id } = req.params;
-    const driver = await Driver.findOne({ user: req.user?._id });
-    
-    if (!driver) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Driver profile not found !")
+    try {
+        // 🔹 Find Driver
+        const driver = await Driver.findOne({ user: driverId }).session(session);
+            // console.log("driver ID ✅:", driver);
+        if (!driver) {
+            throw new AppError(httpStatus.NOT_FOUND, "Driver not found!");
+        }
+
+        const rider = await Ride.findById(id)
+        if (!rider) {
+            throw new AppError(httpStatus.NOT_FOUND, "Rider Not Found");
+        }
+
+        if (driver.status === "approved") {
+            throw new AppError(httpStatus.NOT_FOUND, `You active in Ride !: ${rider.id}`);
+        }
+
+        if (driver.activeRide?._id) {
+            throw new AppError(httpStatus.NOT_FOUND, `You active in Ride: ${rider.id}`);
+        }
+
+        if (driver.availability !== "online") {
+        throw new AppError(httpStatus.BAD_REQUEST, "You must be online to accept a ride!");
+        }
+
+        // 🔹 Update Ride with driverId + approved status
+        const ride = await Ride.findByIdAndUpdate(
+        id,
+        {
+            driver: driverId,
+            status: "accepted",
+        },
+        { new: true, session }
+        );
+
+        if (!ride) {
+        throw new AppError(httpStatus.NOT_FOUND, "Ride not found!");
+        }
+
+        // 🔹 Update Driver availability → busy
+        driver.availability = "busy";
+        driver.activeRide = rider.id;
+        await driver.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return ride;
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
     }
-
-    if (driver.availability !== "online") {
-        throw new AppError(httpStatus.BAD_REQUEST, "DDriver must be online to accept rides !")
-    }
-
-    if (driver.activeRide) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Driver already has an active ride !")
-    }
-
-    const ride = await Ride.findById(id)
-    if (!ride) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Ride not found !")
-    }
-
-    if (ride.status !== "requested") {
-        throw new AppError(httpStatus.BAD_REQUEST, "Ride is no longer available !")
-    }
-
-    // accept the ride
-    // ride.driverId = driver.id
-    // await ride.updateStatus("accepted")
+};
 
 
-    
-
-}
 
 
 export const DriverService = {
     setOnlineOffline,
     approvedDriver,
     acceptRide,
-    applyDriver
+    applyDriver,
 };
