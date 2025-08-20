@@ -1,40 +1,7 @@
-// import { Types } from "mongoose";
-// import { ILocation } from "../driver/driver.interface";
-
-// export enum RIDER_STATUS {
-//     REQUESTED = "requested",
-//     ACCEPTED = "accepted",
-//     PICKED_UP = "picked_up",
-//     IN_TRANSIT = "in_transit",
-//     COMPLETED = "completed",
-//     CANCELLED = "cancelled"
-// }
-
-// export interface IRideStatusHistory {
-//     status: RIDER_STATUS;
-//     timestamp: Date;
-//     changeBy?: Types.ObjectId; // Ref: user, who changed: status
-// }
-
-// export interface IRide extends Document {
-//     _id: Types.ObjectId;
-//     riderId: Types.ObjectId; // Ref: IUser
-//     driverId?: Types.ObjectId | null; // Ref: IUser (role: driver)
-//     pickup: ILocation;
-//     destination: ILocation;
-//     fare: number;
-//     status: RIDER_STATUS;
-//     statusHistory: IRideStatusHistory[];
-//     requestedAt: Date;
-//     acceptedAt?: Date;
-//     pickedUpAt?: Date;
-//     completedAt?: Date;
-//     cancelledAt?: Date;
-// }
-
 import { Document, Types } from 'mongoose';
 import { IDriver } from '../driver/driver.interface';
 import { IUser } from '../user/user.interface';
+
 
 
 export interface IRide extends Document {
@@ -99,13 +66,14 @@ export interface IRideTimestamps {
   accepted?: Date;
   driverArrived?: Date;
   pickedUp?: Date;
+  inTransit?: Date;
   completed?: Date;
   cancelled?: Date;
 }
 
 export interface ICancellation {
   cancelledBy: 'rider' | 'driver' | 'admin';
-  reason?: string;
+  reason?: string; // Work later for reason
   cancelledAt: Date;
 }
 
@@ -129,3 +97,15 @@ export interface IRideStatusUpdate {
 export interface IRideCancel {
   reason?: string;
 }
+
+// ✅ update Ride Status
+export const statusFlow: Record<RideStatus, RideStatus | null> = {
+    requested: "accepted",
+    accepted: "driver_arrived",
+    driver_arrived: "picked_up",
+    picked_up: "in_transit",
+    in_transit: "completed",
+    completed: null, // ✅ end
+    cancelled: null, // 🚫 
+    no_driver_found: null, // 🚫 
+};

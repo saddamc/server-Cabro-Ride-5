@@ -1,57 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// import { model, Schema } from "mongoose";
-// import { ILocation } from "../driver/driver.interface";
-// import { IRide, RIDER_STATUS } from "./rider.interface";
-
-// export const locationSchema = new Schema<ILocation>(
-//     {
-//         type: { type: String},
-//         coordinates: {
-//         type: [Number, Number],
-//         required: true,
-//         validate: {
-//             validator: (val: number[]) =>
-//             Array.isArray(val) &&
-//             val.length === 2 &&
-//             val.every((n) => typeof n === "number"),
-//             message: "coordinates must be [lng, lat]",
-//         },
-//         },
-//         address: { type: String },
-//     },
-//     { _id: false, versionKey: false, timestamps: true, }
-// );
-
-
-// const RideStatusHistorySchema = new Schema({
-//     status: { type: String, enum: Object.values(RIDER_STATUS), default: RIDER_STATUS.REQUESTED },
-//     timestamp: { type: Date, default: Date.now },
-//     changeBy: { type: Schema.Types.ObjectId, ref: "User" },
-// }, {
-//     _id: false
-// });
-
-// const rideSchema = new Schema<IRide>({
-//     riderId: { type: Schema.Types.ObjectId, ref: "User" },
-//     driverId: { type: Schema.Types.ObjectId, ref: "User", default: null },
-//     pickup: { type: locationSchema },
-//     destination: { type: locationSchema },
-//     fare: { type: Number, default: null },
-//     status: {type: String, enum: Object.values(RIDER_STATUS), default: RIDER_STATUS.REQUESTED, required: true},
-//     statusHistory: { type: [RideStatusHistorySchema], default: [] },
-//     requestedAt: { type: Date, default: Date.now },
-//     acceptedAt: { type: Date },
-//     pickedUpAt: { type: Date },
-//     completedAt: { type: Date },
-//     cancelledAt: { type: Date },
-// },
-//     { timestamps: true}
-// )
-
-
-// export const Ride = model<IRide>("Ride", rideSchema)
-
-
 
 import { model, Schema } from 'mongoose';
 import { IRide, RideStatus } from './rider.interface';
@@ -235,51 +181,6 @@ rideSchema.index({ driver: 1, status: 1 });
 rideSchema.index({ status: 1, createdAt: -1 });
 rideSchema.index({ 'pickupLocation.coordinates': '2dsphere' });
 rideSchema.index({ 'destinationLocation.coordinates': '2dsphere' });
-
-// Update status timestamps
-// rideSchema.pre('save', function(next) {
-//   if (this.isModified('status')) {
-//     const now = new Date();
-    
-//     switch (this.status) {
-//       case 'accepted':
-//         if (!this.timestamps.accepted) {
-//           this.timestamps.accepted = now;
-//         }
-//         break;
-//       case 'driver_arrived':
-//         if (!this.timestamps.driverArrived) {
-//           this.timestamps.driverArrived = now;
-//         }
-//         break;
-//       case 'picked_up':
-//         if (!this.timestamps.pickedUp) {
-//           this.timestamps.pickedUp = now;
-//         }
-//         break;
-//       case 'completed':
-//         if (!this.timestamps.completed) {
-//           this.timestamps.completed = now;
-//           // Calculate actual duration
-//           if (this.timestamps.pickedUp) {
-//             this.duration.actual = Math.round((now.getTime() - this.timestamps.pickedUp.getTime()) / (1000 * 60));
-//           }
-//         }
-//         break;
-//       case 'cancelled':
-//         if (!this.timestamps.cancelled) {
-//           this.timestamps.cancelled = now;
-//         }
-//         if (!this.cancellation?.cancelledAt) {
-//           if (!this.cancellation) this.cancellation = {} as any;
-//           this.cancellation.cancelledAt = now;
-//         }
-//         break;
-//     }
-//   }
-  
-//   next();
-// });
 
 // Methods
 rideSchema.methods.updateStatus = function(newStatus: RideStatus, updatedBy?: string): Promise<IRide> {

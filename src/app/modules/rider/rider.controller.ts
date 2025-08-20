@@ -3,14 +3,20 @@
  
 
 import { Request, Response } from 'express';
+import { JwtPayload } from 'jsonwebtoken';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
 import { RideService } from './rider.service';
 
 // ✅ Request Ride
-export const requestRide = catchAsync(async (req: Request, res: Response) => {
-    const id = req.params
-    const result = await RideService.requestRide(req as any);
+const requestRide = catchAsync(async (req: Request, res: Response) => {
+    const id = req.user as JwtPayload
+    console.log("idDriver✅:", id)
+    const payload = {
+        ...req.body,
+        rider: id.userId  
+    }
+    const result = await RideService.requestRide(payload);
 
     sendResponse(res, {
         statusCode: 201,
@@ -23,13 +29,21 @@ export const requestRide = catchAsync(async (req: Request, res: Response) => {
 
 // ✅ Cancel Ride
 const cancelRide = catchAsync(async (req: Request, res: Response) => {
-    const id = req.body.id;   
-    // console.log("last Cancel Ride ID:", id);
+    const user = req.user as JwtPayload;
+    const rideId = req.params.id;
+    // console.log("CANCEL ID:", user, rideId);
+
     const payload = {
         ...req.body,
         status: "cancelled",
-    }
-    const result = await RideService.cancelRide(id, payload);
+        cancellation: {
+        cancelledBy: "rider",
+        reason: "Rider decided to cancel", 
+        cancelledAt: new Date(),
+        },
+    };
+
+    const result = await RideService.cancelRide(rideId, user, payload);
 
     sendResponse(res, {
         statusCode: 200,
@@ -39,8 +53,9 @@ const cancelRide = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+
 // ✅ Ride History
-export const getRideHistory = catchAsync(async (req: Request, res: Response) => {
+const getRideHistory = catchAsync(async (req: Request, res: Response) => {
 
     const result = await RideService.getRideHistory(req as any);
 

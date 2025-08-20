@@ -29,7 +29,7 @@ export interface IDriver extends Document {
     earnings: IEarnings;
     rating: IRating;
     documents?: IDocuments;
-    activeRide?: Types.ObjectId;
+    activeRide?: Types.ObjectId | null;
     approvedAt?: Date;
     createdAt: Date;
     updatedAt: Date;

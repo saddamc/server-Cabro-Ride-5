@@ -5,28 +5,26 @@ import AppError from "../../errorHelpers/AppError";
 import { AuthRequest } from '../auth/auth.interface';
 import { Driver } from '../driver/driver.model';
 import { User } from '../user/user.model';
-import { IRide, IRideRequest } from "./rider.interface";
+import { IRide } from "./rider.interface";
 import { Ride } from './rider.model';
 
 
 // ✅ Request Ride
-const requestRide = async (req: AuthRequest, id:string): Promise<IRide> => {
+const requestRide = async (payload: IRide) => {
     
-    const { pickupLocation, destinationLocation, notes }: IRideRequest = req.body;
-    const user = req.body.rider;    
+    const {rider, pickupLocation, destinationLocation, notes } = payload; 
 
-    const currentUser = await User.findById(id)
-     console.log("User ID - 2 ✅:", currentUser)
+    const currentUser = await User.findById(rider)
+    // console.log("User ID - 2 ✅:", currentUser)
     
     const newCurrentUser = currentUser?._id.toString()
-      // console.log("User ID - 2 ✅:", newCurrentUser)
     
-        if (!newCurrentUser) {
+    if (!newCurrentUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!")
     }
 
     const activeRide = await Ride.findOne({
-        rider: user,
+        rider: rider,
         status: { $in: ['requested', 'accepted', 'driver_arrived', 'picked_up', 'in_transit'] }
     });
 
@@ -36,7 +34,7 @@ const requestRide = async (req: AuthRequest, id:string): Promise<IRide> => {
 
     // Create the ride
     const ride = await Ride.create({
-        rider: user,
+        rider: currentUser,
         pickupLocation,
         destinationLocation,
         notes,
@@ -54,35 +52,34 @@ const requestRide = async (req: AuthRequest, id:string): Promise<IRide> => {
 };
 
 
-
-
 // ✅ Cancel Ride / update Ride
-const cancelRide = async (id: string, payload: IRide,) => {
-    
-    const user = payload.id
-    // console.log("Cancel Ride ID✅:", user);
-
-    const ride = await Ride.findById(user);
+const cancelRide = async (rideId: string, userId: any, payload: any) => {
+    const ride = await Ride.findById(rideId);
     if (!ride) {
-        throw new AppError(httpStatus.NOT_FOUND, "Please provide a valid ID!");
+        throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
     }
+    if (!userId) { throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!") }
 
     if (ride.status === "cancelled") {
-        throw new AppError(httpStatus.BAD_REQUEST, "Ride already cancelled!");
+        throw new AppError(httpStatus.BAD_REQUEST, 'Ride already cancelled');
     }
 
-    if (ride.status === "completed") {
-        throw new AppError(httpStatus.BAD_REQUEST, "Completed ride cannot be cancelled!");
+    if (["picked_up", "in_transit", "completed"].includes(ride.status)) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Ride cannot be cancelled at this stage");
+    }
+// console.log("our problem✅:", ride.rider.toString(), userId.userId)
+    // Matching User 
+    if (ride.rider.toString() !== userId.userId) {
+        throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to cancel this ride");
     }
 
-    const updatedRide = await Ride.findByIdAndUpdate(
-        id,
-        { $set: payload },
-        { new: true, runValidators: true }
-    );
+    ride.status = payload.status;
+    ride.cancellation = payload.cancellation;
 
-    return updatedRide;
+    await ride.save();
+    return ride;
 };
+
 
 // ✅ Ride History
 const getRideHistory = async (req: AuthRequest) => {
