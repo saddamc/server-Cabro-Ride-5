@@ -1,8 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status-codes';
 import AppError from "../../errorHelpers/AppError";
-import { RideStatus, statusFlow } from '../rider/rider.interface';
+import { calculateDistance } from '../../utils/calculateDistance';
+import { getTransactionId } from '../../utils/getTransaction';
+import { PAYMENT_STATUS } from '../payment/payment.interface';
+import { Payment } from '../payment/payment.model';
+import { IRide, RIDE_STATUS, RideStatus, statusFlow } from '../rider/rider.interface';
 import { Ride } from '../rider/rider.model';
+import { ISSLCommerz } from '../sslCommerz/sslCommerz.interface';
+import { SSLService } from '../sslCommerz/sslCommerz.service';
 import { Role } from '../user/user.interface';
 import { User } from '../user/user.model';
 import { IDriver } from './driver.interface';
@@ -49,9 +55,8 @@ const approvedDriver = async (id: string) => {
 // ✅ Driver Status => online / offline
 const setOnlineOffline = async (id: any) => {
 
-    const driver = await Driver.findOne({ userId: id?.userId })
+    const driver = await Driver.findOne({user: id })
     // console.log("who:", driver?._id.toString())
-    // console.log(JSON.stringify(driver?._id, null, 2));
     if (!driver?._id) {
         throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !")
     }
@@ -61,6 +66,10 @@ const setOnlineOffline = async (id: any) => {
     }
     if (driver.status === "rejected" || driver.status === "suspended") {
         throw new AppError(httpStatus.BAD_REQUEST, "Update your documents or contact customer support. ⚠️")
+    }
+
+    if (driver.availability === "busy") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Driver is currently busy and cannot change availability");
     }
 
     const newStatus =
@@ -150,30 +159,35 @@ const acceptRide = async (id: string, driverId: string) => {
     try {
         // 🔹 Find Driver
         const driver = await Driver.findOne({ user: driverId }).session(session);
-            // console.log("driver ID ✅:", driver);
+            // console.log("driver ID ✅:", driver, id);
         if (!driver) {
             throw new AppError(httpStatus.NOT_FOUND, "Driver not found!");
         }
 
         const rider = await Ride.findById(id)
         if (!rider) {
-            throw new AppError(httpStatus.NOT_FOUND, "Rider Not Found");
+            throw new AppError(httpStatus.NOT_FOUND, "Ride Not Found");
+        }
+        
+        if (driver.status !== "approved") {
+            throw new AppError(httpStatus.NOT_FOUND, "Driver status cannot approved");
+        }
+        // console.log("test✅:", driver.activeRide === null)
+        if (rider.id ===  driver.activeRide?.toString()) {
+            throw new AppError(httpStatus.NOT_FOUND, `You already completed this Ride ${rider.id}`);
         }
 
-        if (driver.status === "pending") {
-            throw new AppError(httpStatus.NOT_FOUND, "Wait for confirm your application");
-        }
-
-        if (rider.id === id) {
-            throw new AppError(httpStatus.NOT_FOUND, "You already active in this Ride");
-        }
-
-        if (driver.activeRide === null) {
-            throw new AppError(httpStatus.NOT_FOUND, `You active in Ride: ${rider.id}`);
+        if (driver.activeRide?.toString() === null) {
+            throw new AppError(httpStatus.NOT_FOUND, "You are active Ride");
         }
 
         if (driver.availability !== "online") {
-        throw new AppError(httpStatus.BAD_REQUEST, "You must be online to accept ride!");
+            throw new AppError(httpStatus.BAD_REQUEST, "You must be online to accept ride!");
+        
+        }
+        // important condition
+        if (rider.status !== "requested") {
+            throw new AppError(httpStatus.NOT_FOUND, "Rider cannot request for Ride");
         }
 
         // 🔹 Update Ride with driverId + approved status
@@ -182,7 +196,7 @@ const acceptRide = async (id: string, driverId: string) => {
             {
                 $set: {
                 driver: driver.id,
-                status: "driver_arrived",
+                status: "accepted",
                 "timestamps.accepted": new Date(),
                 },
             },
@@ -230,11 +244,11 @@ const rejectRide = async (id: string, driverId: string) => {
         // console.log("ride function ✅",rider.driver?.toJSON() === driver.id)
 
         if (rider.driver === driver.id) {
-            throw new AppError(httpStatus.FORBIDDEN, "User IDs do not match!");
+            throw new AppError(httpStatus.FORBIDDEN, "User IDs do not match By your Ride!");
         }
 
         if (
-            rider.status === "accepted" ||
+            rider.status === "cancelled" ||
             rider.status === "in_transit" ||
             rider.status === "no_driver_found"
             ) {
@@ -245,15 +259,11 @@ const rejectRide = async (id: string, driverId: string) => {
             throw new AppError(httpStatus.BAD_REQUEST, "Completed Ride does't possible cancelled!");
         }
 
-        if (rider.status === "requested") {
-            throw new AppError(httpStatus.BAD_REQUEST, "This ride is requested for accepted!");
+        if (rider.status !== "accepted" && rider.status !== "requested") {
+            throw new AppError(httpStatus.BAD_REQUEST, "Ride something wrong");
         } 
-        if (rider.status === "picked_up") {
-            throw new AppError(httpStatus.BAD_REQUEST, "Driver on the way to Destination!");
-        }
 
-
-        if (['completed', 'pick_up', 'in_transit', 'cancelled'].includes(rider.status)) {
+        if (['completed', 'picked_up', 'in_transit', 'cancelled'].includes(rider.status)) {
             throw new AppError(httpStatus.BAD_REQUEST, 'Ride already cancelled');
         }
 
@@ -290,122 +300,184 @@ const rejectRide = async (id: string, driverId: string) => {
     }
 };
 
+// ✅ Update Ride Status
+const updateRideStatus = async (id: string, driver: string, rating: IRide) => {
+    const transactionId = getTransactionId();
 
-const pickupRide = async (id: string, driver: string) => {
-    const ride = await Ride.findById(id);
-    if (!ride) {
+    const {driverRating, driverFeedback} = rating
+
+    const session = await Ride.startSession();
+    session.startTransaction();
+
+    try {
+        const ride = await Ride.findById(id).session(session);
+        if (!ride) {
         throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
-    }
+        }
 
-    const driverId = await Driver.findOne({user: driver})
-    //  console.log("driverId ✅:", driverId)
+        const driverDoc = await Driver.findOne({ user: driver }).session(session);
+        if (!driverDoc) {
+        throw new AppError(httpStatus.NOT_FOUND, "Driver not found");
+        }
 
-    // Matching Driver
-    if (ride.driver?.toString() !== driverId?._id.toString()) {
+        // Matching Driver
+        if (ride.driver?.toString() !== driverDoc._id.toString()) {
         throw new AppError(httpStatus.FORBIDDEN, "This is not your ride");
-    }
+        }
 
-    const nextStatus = statusFlow[ride.status as RideStatus];
-    if (!nextStatus) {
-        throw new AppError(
-        httpStatus.BAD_REQUEST,
-        `Cannot update status from ${ride.status}`
-        );
-    }
-
-    // Prevent cancellation after picked_up
-    if (ride.status === "picked_up" || ride.status === "in_transit") {
-        if (nextStatus === "cancelled") {
+        const nextStatus = statusFlow[ride.status as RideStatus];
+        if (!nextStatus) {
         throw new AppError(
             httpStatus.BAD_REQUEST,
-            "Ride cannot be cancelled after pickup"
+            `Cannot update status from ${ride.status}`
         );
         }
-    }
 
-    ride.status = nextStatus;
-    const now = new Date();
-
-    switch (nextStatus) {
-        case "driver_arrived":
-        ride.timestamps.driverArrived = now;
-        break;
-        case "picked_up":
-        ride.timestamps.pickedUp = now;
-        break;
-        case "in_transit":
-        break;
-        case "completed":
-        ride.timestamps.completed = now;
-        if (ride.timestamps.pickedUp) {
-            ride.duration.actual = Math.round(
-            (now.getTime() - ride.timestamps.pickedUp.getTime()) / (1000 * 60)
-            );
-        }
-        break;
-    }
-
-    await ride.save();
-    return ride;
-};
-
-const completeRide = async (id: string, driver: string) => {
-    const ride = await Ride.findById(id);
-    if (!ride) {
-        throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
-    }
-
-    const driverId = await Driver.findOne({user: driver})
-    //  console.log("driverId ✅:", driverId)
-
-    // Matching Driver
-    if (ride.driver?.toString() !== driverId?._id.toString()) {
-        throw new AppError(httpStatus.FORBIDDEN, "This is not your ride");
-    }
-
-    const nextStatus = statusFlow[ride.status as RideStatus];
-    if (!nextStatus) {
-        throw new AppError(
-        httpStatus.BAD_REQUEST,
-        `Cannot update status from ${ride.status}`
-        );
-    }
-
-    // Prevent cancellation after picked_up
-    if (ride.status === "picked_up" || ride.status === "in_transit") {
+        // Prevent cancellation after pickup
+        if (ride.status === "picked_up" || ride.status === "in_transit") {
         if (nextStatus === "cancelled") {
-        throw new AppError(
+            throw new AppError(
             httpStatus.BAD_REQUEST,
             "Ride cannot be cancelled after pickup"
-        );
-        }
-    }
-
-    ride.status = nextStatus;
-    const now = new Date();
-
-    switch (nextStatus) {
-        case "driver_arrived":
-        ride.timestamps.driverArrived = now;
-        break;
-        case "picked_up":
-        ride.timestamps.pickedUp = now;
-        break;
-        case "in_transit":
-        break;
-        case "completed":
-        ride.timestamps.completed = now;
-        if (ride.timestamps.pickedUp) {
-            ride.duration.actual = Math.round(
-            (now.getTime() - ride.timestamps.pickedUp.getTime()) / (1000 * 60)
             );
         }
-        break;
-    }
+        }
 
-    await ride.save();
-    return ride;
+        ride.status = nextStatus;
+        const now = new Date();
+
+        switch (nextStatus) {
+        case "accepted":
+            ride.timestamps.driverArrived = now;
+            break;
+
+        case "picked_up":
+            ride.timestamps.pickedUp = now;
+            break;
+
+        case "in_transit":
+            ride.timestamps.inTransit = now;
+            break;
+
+        case "completed": {
+            ride.timestamps.completed = now;
+
+            // calculate duration
+            if (ride.timestamps.pickedUp) {
+            ride.duration.actual = Math.round(
+                (now.getTime() - ride.timestamps.pickedUp.getTime()) /
+                (1000 * 60)
+            );
+            }
+
+            // calculate distance
+            if (
+            ride.pickupLocation?.coordinates &&
+            ride.destinationLocation?.coordinates
+            ) {
+            ride.distance.actual = calculateDistance(
+                ride.pickupLocation.coordinates,
+                ride.destinationLocation.coordinates
+            );
+            }
+
+            // calculate fare
+            ride.calculateFare();
+            const amount = Math.round(ride.fare.totalFare);
+
+            // 1. Create payment
+            const payment = await Payment.create(
+            [
+                {
+                ride: ride._id,
+                driver: driverDoc._id,
+                status: PAYMENT_STATUS.PAID,  //change when add payment system 
+                transactionId,
+                amount,
+                },
+            ],
+            { session }
+            );
+            
+                // console.log("payment ✅:", payment)
+
+            // 2. 
+            const updatedRide = await Ride.findByIdAndUpdate(
+            ride._id,
+                {
+                    payment: payment[0]._id,
+                    paymentStatus: RIDE_STATUS.COMPLETE,  //change
+                    rating: {driverRating,
+                    driverFeedback}
+                }, 
+            { new: true, runValidators: true, session }
+            )
+            .populate("rider", "name email phone address")
+            .populate("driver", "licenseNumber user")
+            .populate("payment");
+
+            // 3. 
+            const sslPayload: ISSLCommerz = {
+            address: (updatedRide?.rider as any).address,
+            email: (updatedRide?.rider as any).email,
+            phoneNumber: (updatedRide?.rider as any).phone,
+            name: (updatedRide?.rider as any).name,
+            amount,
+            transactionId,
+            };
+
+            // 4️.
+            await SSLService.sslPaymentInit(sslPayload);
+
+            // 5️.
+            if (ride.driver) {
+            await Driver.findByIdAndUpdate(
+                ride.driver,
+                { availability: "online", activeRide: null },
+                { session }
+            );
+            }
+
+            break;
+        }
+        }
+
+        await ride.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+
+        return ride;
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
 };
+
+// ✅ Earning History 
+const driverEarnings = async (driverUserId: string) => {
+
+    const driverId = await Driver.findOne({user: driverUserId})
+
+    const payments = await Payment.find({ driver: driverId, status: "PAID" })
+        .populate("ride", "status duration distance") // optional populate
+        .sort({ createdAt: -1 });
+
+    // Total earnings
+    const totalEarnings = payments.reduce((acc, p) => acc + p.amount, 0);
+
+    return {
+        totalEarnings,
+        totalTrips: payments.length,
+        history: payments.map((p) => ({
+        amount: p.amount,
+        createdAt: p.createdAt,
+        rideId: p.ride,
+        transactionId: p.transactionId,
+        })),
+    };
+};
+
 
 
 
@@ -415,6 +487,6 @@ export const DriverService = {
     acceptRide,
     applyDriver,
     rejectRide,
-    pickupRide,
-    completeRide,
+    updateRideStatus,
+    driverEarnings,
 };

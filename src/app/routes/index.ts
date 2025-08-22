@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AuthRoutes } from "../modules/auth/auth.route";
 import { driverRoutes } from "../modules/driver/driver.route";
+import { PaymentRoutes } from "../modules/payment/payment.route";
 import { riderRoutes } from "../modules/rider/rider.route";
 import { userRoutes } from "../modules/user/user.route";
 
@@ -8,21 +9,25 @@ export const router = Router();
 
 const modelRoutes = [
   {
-    path: "/user",
+    path: "/users",
     route: userRoutes,
   },
   {
-    path: "/auth",
+    path: "/auths",
     route: AuthRoutes,
   },
   {
-    path: "/ride",
+    path: "/rides",
     route: riderRoutes,
   },
   {
-    path: "/driver",
+    path: "/drivers",
     route: driverRoutes,
   },
+  {
+    path: "/payment",
+    route: PaymentRoutes,
+  }
 
 
 ];

@@ -3,11 +3,18 @@ import { IDriver } from '../driver/driver.interface';
 import { IUser } from '../user/user.interface';
 
 
+export enum RIDE_STATUS {
+    PENDING = 'PENDING',
+    CANCEL = 'CANCEL',
+    COMPLETE = 'COMPLETE',
+    FAILED = 'FAILED'
+}
 
 export interface IRide extends Document {
   _id: Types.ObjectId;
   rider: Types.ObjectId | IUser;
   driver?: Types.ObjectId | IDriver;
+  payment?: Types.ObjectId;
   pickupLocation: IRideLocation;
   destinationLocation: IRideLocation;
   status: RideStatus;
@@ -17,7 +24,7 @@ export interface IRide extends Document {
   timestamps: IRideTimestamps;
   cancellation?: ICancellation;
   rating?: IRideRating;
-  paymentStatus: PaymentStatus;
+  paymentStatus?: RIDE_STATUS;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -28,20 +35,21 @@ export interface IRide extends Document {
 
 export interface IRideLocation {
   address: string;
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates: [number, number];
 }
 
-export type RideStatus = 
+export type RideStatus =
   | 'requested'
   | 'accepted'
-  | 'driver_arrived'
+  // | 'driver_arrived'
   | 'picked_up'
   | 'in_transit'
   | 'completed'
   | 'cancelled'
-  | 'no_driver_found';
+  | 'no_driver_found'
+  | 'failed'
 
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+// export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export interface IFare {
   baseFare: number;
@@ -73,7 +81,7 @@ export interface IRideTimestamps {
 
 export interface ICancellation {
   cancelledBy: 'rider' | 'driver' | 'admin';
-  reason?: string; // Work later for reason
+  reason?: string;
   cancelledAt: Date;
 }
 
@@ -98,14 +106,13 @@ export interface IRideCancel {
   reason?: string;
 }
 
-// ✅ update Ride Status
 export const statusFlow: Record<RideStatus, RideStatus | null> = {
-    requested: "accepted",
-    accepted: "driver_arrived",
-    driver_arrived: "picked_up",
-    picked_up: "in_transit",
-    in_transit: "completed",
-    completed: null, // ✅ end
-    cancelled: null, // 🚫 
-    no_driver_found: null, // 🚫 
+  requested: 'accepted',
+  accepted: 'picked_up',
+  picked_up: 'in_transit',
+  in_transit: 'completed',
+  completed: null,
+  cancelled: null,
+  no_driver_found: null,
+  failed: null, // ✅ added
 };

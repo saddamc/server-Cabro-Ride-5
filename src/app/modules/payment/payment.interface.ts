@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Types } from "mongoose";
 
 export type PaymentType = "ride_payment" | "payout" | "refund" | "bonus" | "other";
@@ -12,11 +12,12 @@ export enum PAYMENT_STATUS {
 }
 
 export interface IPayment {
-    _id: Types.ObjectId;
     ride: Types.ObjectId; // Reference to the ride
     driver: Types.ObjectId; // Reference to the driver
-    amount: number; // Amount in cents or smallest currency unit
-    type: PaymentType; // Type of transaction
-    status: PAYMENT_STATUS; // Status of the payment
-    createdAt: Date; // Timestamp of transaction creation
+    transactionId: string;
+    amount: number; 
+    paymentGatewayData?: any;
+    invoiceUrl ?: string;
+    status: PAYMENT_STATUS; 
+    createdAt?: Date;
 }

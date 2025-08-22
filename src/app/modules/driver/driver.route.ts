@@ -13,11 +13,12 @@ router.post("/online-offline", checkAuth(...Object.values(Role)), DriverControll
 
 router.post("/accept-ride/:id", checkAuth(...Object.values(Role)), DriverController.acceptRide)
 
-router.patch("/reject-ride/:id", checkAuth(...Object.values(Role)), DriverController.rejectRide)
+router.patch("/reject/:id", checkAuth(...Object.values(Role)), DriverController.rejectRide)
 
-router.patch("/pickup/:id", checkAuth(...Object.values(Role)), DriverController.pickupRide);
+router.patch("/driver-status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
 
-router.patch("/driver-status/:id", checkAuth(...Object.values(Role)), DriverController.completeRide);
+router.get("/earning", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
+
 
 router.post("/status/:id", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
 

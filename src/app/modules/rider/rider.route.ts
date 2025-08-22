@@ -9,9 +9,11 @@ import { createRideZodSchema } from "./rider.validation";
 
 const router = express.Router();
 
-router.post("/request-ride", validateRequest(createRideZodSchema), checkAuth(...Object.values(Role)), RideController.requestRide);
+router.post("/request", validateRequest(createRideZodSchema), checkAuth(...Object.values(Role)), RideController.requestRide);
 router.patch("/cancel-ride/:id", checkAuth(...Object.values(Role)), RideController.cancelRide);
 router.get("/ride-history/:id", checkAuth(...Object.values(Role)), RideController.getRideHistory)
+
+router.patch("/complete/:id", checkAuth(...Object.values(Role)), RideController.completeRide)
 
 router.get("/", checkAuth(Role.admin, Role.super_admin), RideController.getAllRide)
 

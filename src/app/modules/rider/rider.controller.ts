@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
- 
-
 import { Request, Response } from 'express';
 import { JwtPayload } from 'jsonwebtoken';
 import { catchAsync } from '../../utils/catchAsync';
@@ -83,10 +81,29 @@ const getAllRide = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+// ✅ 
+const completeRide = async (req: Request, res: Response) => {
+    try {
+    const { id } = req.params; // frontend sends rideId in URL
+
+    const ride = await RideService.completeRide(id);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true, 
+        message: "Ride Retrieved Successfully",
+        data: ride,
+    })
+    } catch (error: any) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
 
 export const RideController = {
     requestRide,
     cancelRide,
     getAllRide, 
-    getRideHistory
+    getRideHistory,
+    completeRide,
 };

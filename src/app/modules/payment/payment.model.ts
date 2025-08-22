@@ -6,28 +6,33 @@ import { IPayment, PAYMENT_STATUS } from "../payment/payment.interface";
 const paymentSchema = new Schema<IPayment>({
     ride: {
         type: Schema.Types.ObjectId,
-        ref: "Rider",
+        ref: "Ride",
         required: true,
     },
     driver: {
         type: Schema.Types.ObjectId,
-        ref: "Driver",
+        ref: "Driver", required: true,
+    },
+    transactionId: {
+        type: String,
         required: true,
+        unique: true,
+    },
+    status: {
+        type: String,
+        enum: Object.values(PAYMENT_STATUS),
+        default: PAYMENT_STATUS.UNPAID
     },
     amount: {
         type: Number,
         required: true,
     },
-    type: {
-        type: String,
-        enum: ["ride_payment", "payout", "refund", "bonus", "other"],
-        required: true,
+    paymentGatewayData: {
+        type: Schema.Types.Mixed
     },
-    status: {
-        type: String,
-        enum: Object.values(PAYMENT_STATUS),
-        default: PAYMENT_STATUS.UNPAID,
-    },
+    invoiceUrl: {
+        type: String
+    }
 }, {
     timestamps: true
 })

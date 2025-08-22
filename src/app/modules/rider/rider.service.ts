@@ -5,7 +5,7 @@ import AppError from "../../errorHelpers/AppError";
 import { AuthRequest } from '../auth/auth.interface';
 import { Driver } from '../driver/driver.model';
 import { User } from '../user/user.model';
-import { IRide } from "./rider.interface";
+import { IRide, RIDE_STATUS } from "./rider.interface";
 import { Ride } from './rider.model';
 
 
@@ -198,11 +198,37 @@ const getAllRide = async () => {
     }
 }
 
+// ✅ complete Ride => lot of works remaining
+const completeRide = async (id: string): Promise<IRide> => {
+    const ride = await Ride.findById(id);
+    if (!ride) {
+        throw new Error('Ride not found');
+    }
+    if (ride.status === "completed") {
+        throw new Error('Payment already complete');
+    }
+
+    //  Mark ride as completed
+    ride.paymentStatus = RIDE_STATUS.COMPLETE;
+    ride.timestamps.completed = new Date();
+
+    //  Calculate Fare
+    ride.calculateFare();
+
+    //  Mark payment status (for now auto "completed", later integrate Stripe/SSLCommerz/etc.)
+    ride.status = 'completed';
+
+    await ride.save();
+    return ride;
+};
+
+
 
 
 export const RideService = {
     requestRide,
     cancelRide,
     getAllRide,
-    getRideHistory
+    getRideHistory,
+    completeRide,
 };

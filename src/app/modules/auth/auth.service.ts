@@ -157,89 +157,7 @@ const setPassword = async (userId: string, password: string) => {
 
 }
 
-// ✅ Apply Driver
-// const applyDriver = async (payload: IDriver) => {
-//   const session = await Driver.startSession();
-//   session.startTransaction();
-//   console.log("payload new ✅:", payload )
-  
 
-//   try {
-//     const { user, licenseNumber, vehicleType } = payload;
-//     console.log("driver ID 100 ✅:", user);
-    
-//     const plateNum = payload.vehicleType?.plateNumber
-//     console.log("TEST ✅:", plateNum);
-
-//     const inputId = payload.id
-//     console.log("Input ID 2 ✅:", inputId);
-
-//     if (!(user === inputId)) {
-//       throw new AppError(httpStatus.BAD_REQUEST, "login User & input User is not same User");
-//     }
-
-//     const currentUser = await User.findById(user).session(session);
-//     console.log("currentUser ID 2 ✅:", currentUser);
-
-//     if (!currentUser) {
-//       throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!");
-//     }
-
-//     if (currentUser.role === Role.driver) {
-//       throw new AppError(httpStatus.BAD_REQUEST, "You are already a Driver!");
-//     }
-
-//     const existingDriver = await Driver.findOne({ user }).session(session);
-//     console.log("curDriver ID 2 ✅:", existingDriver);
-
-//     if (existingDriver) {
-//       throw new AppError(httpStatus.BAD_REQUEST, "You are already a Driver!!");
-//     }
-
-
-
-
-    
-
-//     // const { licenseNumber, vehicleInfo } = payload.body;
-//     // console.log("payload ID 1 ✅:", payload.body);
-
-//     if (!licenseNumber || !vehicleType) {
-//       throw new AppError(httpStatus.BAD_REQUEST, "Missing required fields: licenseNumber and/or vehicleInfo");
-//     }
-
-//     // ✅ Update role inside transaction
-//     currentUser.role = Role.driver;
-//     await currentUser.save({ session });
-
-//   //   if (!payload.vehicleType?.plateNumber) {
-//   // throw new AppError(httpStatus.BAD_REQUEST, "Plate number is required");
-//   //   }
-    
-//   //   if (!payload.licenseNumber) {
-//   //     throw new AppError(httpStatus.BAD_REQUEST, "License number is required");
-//   //   }
-
-//     // ✅ Create driver doc with correct shape
-//     const driverDocs = await Driver.create([{
-//       user: currentUser._id,
-//       licenseNumber,
-//       vehicleType
-//     }], { session });
-//     console.log("driver ID 5 ✅:", driverDocs);
-
-//     // ✅ Commit if all good
-//     await session.commitTransaction();
-//     session.endSession();
-
-//     return driverDocs[0];
-//   } catch (error) {
-//     // ❌ Rollback all changes
-//     await session.abortTransaction();
-//     session.endSession();
-//     throw error; // Let error handler send response
-//   }
-// };
   
   export const AuthServices = {
     getNewAccessToken,
@@ -247,5 +165,4 @@ const setPassword = async (userId: string, password: string) => {
     forgotPassword,
     setPassword,
     userVerification,
-    // applyDriver,
   };

@@ -49,10 +49,10 @@ const userFromToken = req.user as JwtPayload;
 const setOnlineOffline = catchAsync(async (req: Request, res: Response) => {
   // const { id } = req.params;
   // console.log("online id✅:", id)
-  const idDriver = (req.user as any)?.userId
+  const idDriver = req.user as JwtPayload
   // console.log("idDriver✅:", idDriver)
 
-    const result = await DriverService.setOnlineOffline(idDriver)
+    const result = await DriverService.setOnlineOffline(idDriver.userId)
 
         sendResponse(res, {
         statusCode: 201,
@@ -65,7 +65,7 @@ const setOnlineOffline = catchAsync(async (req: Request, res: Response) => {
 // ✅ Accept Ride
 const acceptRide = catchAsync(async (req: Request, res: Response):Promise<any> => {
     const { id } = req.params; 
-    const driverId = (req.user as any)?.userId;
+    const driverId = req.user as JwtPayload
     // console.log("driverId ✅:", id)
   
   if (!id) {
@@ -76,7 +76,7 @@ const acceptRide = catchAsync(async (req: Request, res: Response):Promise<any> =
       throw new AppError(httpStatus.BAD_REQUEST, "Driver ID is required")
     }
   
-    const result = await DriverService.acceptRide(id, driverId);
+    const result = await DriverService.acceptRide(id, driverId.userId);
   
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -89,7 +89,7 @@ const acceptRide = catchAsync(async (req: Request, res: Response):Promise<any> =
 // ✅ Reject Ride
 const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> => {
     const { id } = req.params; 
-    const driverId = (req.user as any)?.userId;
+  const driverId = req.user as JwtPayload;
     // console.log("driverId ✅:", id)
   
   if (!id) {
@@ -100,7 +100,7 @@ const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> =
       throw new AppError(httpStatus.BAD_REQUEST, "Driver ID is required")
     }
   
-    const result = await DriverService.rejectRide(id, driverId);
+    const result = await DriverService.rejectRide(id, driverId.userId);
   
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -110,13 +110,14 @@ const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> =
     });
 });
 
-// ✅ pickup Ride Status 
-const pickupRide = async (req: Request, res: Response) => {
+// ✅ Update Ride Status 
+const updateRideStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const driver = (req.user as any)?.userId; 
-  // console.log("driverId ✅:", id, driver)
+  const driver = req.user as JwtPayload; 
+  const rating = req.body
+  console.log("driverId ✅:", id, driver)
 
-  const ride = await DriverService.pickupRide(id, driver);
+  const ride = await DriverService.updateRideStatus(id, driver.userId, rating);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -126,32 +127,31 @@ const pickupRide = async (req: Request, res: Response) => {
   });
 }
 
-// ✅ complete Ride Status 
-const completeRide = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const driver = (req.user as any)?.userId; 
-  // console.log("driverId ✅:", id, driver)
+// ✅ Earning History
+const driverEarnings = async (req: Request, res: Response) => {
+  
+  const driverUserId = req.user as JwtPayload
 
-  const ride = await DriverService.pickupRide(id, driver);
+  const earnings = await DriverService.driverEarnings(driverUserId.userId);
+  // console.log("payment ✅:", driverUserId);    
 
-  sendResponse(res, {
-  statusCode: httpStatus.OK,
-  success: true,
-  message: `Ride status moved to ${ride.status}`,
-  data: ride,
+    sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Earning history fetched successfully",
+    data: earnings,
   });
 }
 
 
-  
 
 
 export const DriverController = {
-  setOnlineOffline,
-  approvedDriver,
-  applyDriver,
-  acceptRide,
-  rejectRide,
-  pickupRide,
-  completeRide,
-};
+    setOnlineOffline,
+    approvedDriver,
+    applyDriver,
+    acceptRide,
+    rejectRide,
+    updateRideStatus,
+    driverEarnings,
+  }
