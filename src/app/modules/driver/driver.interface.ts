@@ -11,7 +11,6 @@ export interface IVehicleType {
 }
 
 export interface ILocation {
-    type: 'Point';
     coordinates: [number, number]; // [longitude, latitude]
     address?: string;
     lastUpdated: Date;
@@ -25,7 +24,7 @@ export interface IDriver extends Document {
     vehicleType: IVehicleType;
     status: 'pending' | 'approved' | 'suspended' | 'rejected';
     availability: 'online' | 'offline' | 'busy';
-    location?: ILocation;
+    location: ILocation;
     earnings: IEarnings;
     rating: IRating;
     documents?: IDocuments;
@@ -54,15 +53,6 @@ export interface IDocuments {
     licenseImage?: string;
     vehicleRegistration?: string;
     insurance?: string;
-}
-
-export interface IDriverUpdate {
-    availability?: 'online' | 'offline';
-    location?: {
-        longitude: number;
-        latitude: number;
-        address?: string;
-    };
 }
 
 export interface IDriverStatusUpdate {

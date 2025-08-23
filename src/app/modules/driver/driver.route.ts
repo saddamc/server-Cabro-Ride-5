@@ -19,10 +19,17 @@ router.patch("/update-status/:id", checkAuth(...Object.values(Role)), DriverCont
 
 router.get("/earning", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
 
+router.get("/nearby", checkAuth(...Object.values(Role)), DriverController.findNearbyDrivers)
+
+router.patch("/update-me", checkAuth(...Object.values(Role)), DriverController.updateDriverDoc)
+
+// Rating
+router.patch("/rating/:id", checkAuth(...Object.values(Role)), DriverController.ratingRide)
+
 // ADMIN
 router.post("/status/:id", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
 
-
+router.post("/suspend/:id",checkAuth(Role.admin, Role.super_admin), DriverController.suspendDriver)
 
 
 

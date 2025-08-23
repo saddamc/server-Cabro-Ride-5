@@ -5,7 +5,7 @@ import { calculateDistance } from '../../utils/calculateDistance';
 import { getTransactionId } from '../../utils/getTransaction';
 import { PAYMENT_STATUS } from '../payment/payment.interface';
 import { Payment } from '../payment/payment.model';
-import { IRideRating, RIDE_STATUS, RideStatus, statusFlow } from '../rider/rider.interface';
+import { RIDE_STATUS, RideStatus, statusFlow } from '../rider/rider.interface';
 import { Ride } from '../rider/rider.model';
 import { ISSLCommerz } from '../sslCommerz/sslCommerz.interface';
 import { SSLService } from '../sslCommerz/sslCommerz.service';
@@ -90,7 +90,7 @@ const applyDriver = async (payload: IDriver) => {
     session.startTransaction();
 
 try {
-    const { user, licenseNumber, vehicleType } = payload;
+    const { user, licenseNumber, vehicleType, location } = payload;
     // console.log("driver ID ✅:", user);
 
     // const inputId = payload.id
@@ -133,7 +133,8 @@ try {
     const driverDocs = await Driver.create([{
         user: currentUser._id,
         licenseNumber,
-        vehicleType
+        vehicleType, 
+        location
     }], { session });
 
     // ✅ Update role 
@@ -300,11 +301,43 @@ const rejectRide = async (id: string, driverId: string) => {
     }
 };
 
+// ✅ Suspend Driver
+const suspendDriver = async (id: any) => {
+
+    const driver = await Driver.findById(id)
+    console.log("who:", driver)
+    if (!driver?._id) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !")
+    }
+
+    if (driver.status === "pending" ) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Your status: pending, Waiting for Approval.")
+    }
+    if (driver.status === "rejected") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Driver status rejected ⚠️")
+    }
+
+    if (driver.availability === "busy") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Driver is currently busy and cannot change availability");
+    }
+
+    const newStatus =
+    driver.status === "approved" ? "suspend" : "approved";
+
+    const updatedDriver = await Driver.findByIdAndUpdate(
+        driver,
+        { status: newStatus },
+        { new: true }
+    );
+
+    return updatedDriver;
+}
+
 // ✅ Update Ride Status
-const updateRideStatus = async (id: string, driver: string, rating: IRideRating) => {
+const updateRideStatus = async (id: string, driver: string,) => {
     const transactionId = getTransactionId();
 
-    const { driverRating, driverFeedback } = rating;
+    // const { driverRating, driverFeedback } = rating;
 
     const session = await Ride.startSession();
     session.startTransaction();
@@ -407,8 +440,8 @@ const updateRideStatus = async (id: string, driver: string, rating: IRideRating)
                 {
                     payment: payment[0]._id,
                     paymentStatus: RIDE_STATUS.COMPLETE,  //change
-                    rating: {driverRating,
-                    driverFeedback}
+                    // rating: {driverRating,
+                    // driverFeedback}
                 }, 
             { new: true, runValidators: true, session }
             )
@@ -454,6 +487,34 @@ const updateRideStatus = async (id: string, driver: string, rating: IRideRating)
     }
 };
 
+// ✅ Rating Ride
+const ratingRide = async (id: string, riderId: string, rating: number, feedback?: string) => {
+
+    const ride = await Ride.findById(id);
+    // console.log("service ✅", id, riderId, rating, feedback)
+    if (!ride) {
+        throw new Error("Ride not found");
+    }
+
+    if (ride.rider.toString() !== riderId.toString()) {
+        throw new Error("You are not authorized to rate this ride");
+    }
+
+    if (ride.status !== "completed") {
+        throw new Error("You can only rate a completed ride");
+    }
+
+    ride.rating = {
+        ...ride.rating,
+        driverRating: rating,
+        driverFeedback: feedback,
+    };
+
+    await ride.save();
+
+    return ride;
+};
+
 // ✅ Earning History 
 const driverEarnings = async (driverUserId: string) => {
 
@@ -478,6 +539,85 @@ const driverEarnings = async (driverUserId: string) => {
     };
 };
 
+//✅ Update Driver
+const updateDriverDoc = async (userId: string, payload: Partial<IDriver>) => {
+
+    const currentDriver = await Driver.findOne({ user: userId });
+    if (!currentDriver) throw new Error("Driver not found");
+
+    const updateFields: Partial<IDriver> = {};
+        if (payload.licenseNumber !== undefined) updateFields.licenseNumber = payload.licenseNumber;
+        if (payload.vehicleType !== undefined) updateFields.vehicleType = payload.vehicleType;
+        if (payload.location !== undefined) updateFields.location = payload.location;
+
+
+    const updatedDriver = await Driver.findByIdAndUpdate(
+        currentDriver._id,
+        { $set: updateFields },
+        { new: true, runValidators: true }
+    );
+
+    return updatedDriver;
+};
+
+// ✅ Search Driver
+const findNearbyDrivers = async (lng: number, lat: number, radiusKm = 5) => {
+        const drivers = await Driver.aggregate([
+        {
+        $addFields: {
+            distance: {
+            $sqrt: {
+                $add: [
+                {
+                    $pow: [
+                    { $subtract: [{ $arrayElemAt: ["$location.coordinates", 0] }, lng] },
+                    2,
+                    ],
+                },
+                {
+                    $pow: [
+                    { $subtract: [{ $arrayElemAt: ["$location.coordinates", 1] }, lat] },
+                    2,
+                    ],
+                },
+                ],
+            },
+            },
+        },
+        },
+        {
+        $match: {
+            distance: { $lte: radiusKm / 111 }, // ✅ approx conversion (1° ≈ 111km)
+            availability: "online",             // ✅ only online drivers
+        },
+        },
+        {
+        $lookup: {
+            from: "users",             // user collection
+            localField: "user",        
+            foreignField: "_id",
+            as: "userInfo",
+        },
+        },
+        { $unwind: "$userInfo" },
+        {
+        $project: {
+            _id: 1,
+            licenseNumber: 1,
+            vehicleType: 1,
+            location: 1,
+            distance: 1,
+            name: "$userInfo.name",
+            phone: "$userInfo.phone"    
+        },
+        },
+    ]);
+
+    return drivers;
+};
+
+
+
 
 
 
@@ -487,6 +627,11 @@ export const DriverService = {
     acceptRide,
     applyDriver,
     rejectRide,
+    suspendDriver,
     updateRideStatus,
+    ratingRide,
     driverEarnings,
+    findNearbyDrivers,
+    updateDriverDoc,
+
 };

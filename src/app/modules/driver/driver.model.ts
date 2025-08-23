@@ -9,35 +9,53 @@ const VehicleInfoSchema = new Schema<IVehicleType>({
   year: { type: Number, required: true },
   plateNumber: { type: String, unique:true, required: true },
   color: {type:String}
-});
+},
+  {
+    _id: false
+  },
+);
 
 const LocationSchema = new Schema<ILocation>({
-  coordinates: { type: [Number], // [longitude, latitude]
-    validate: {
-      validator: (val: number[]) => val.length === 2,
-      message: 'Coordinates must be [longitude, latitude]',
-    } },
-  address: { type: Number, required: true },
-  lastUpdated: { type: Date },
-});
+  coordinates: {
+    type: [Number, Number], // [longitude, latitude]  
+  },
+    address: { type: String, required: true },
+    lastUpdated: { type: Date, default:Date.now },
+  },
+  {
+    _id: false
+  },
+);
 
 const EarningsSchema = new Schema<IEarnings>({
   totalEarnings: { type: Number, default: 0 },
   weeklyEarnings: { type: Number, default: 0 },
   monthlyEarnings: { type: Number, default: 0 },
   lastResetDate: {type: Date},
-});
+},
+  {
+    _id: false
+  },
+);
 
 const RatingSchema = new Schema<IRating>({
     average: { type: Number, default: 0 },
     totalRatings: { type: Number, default: 0 },
-});
+},
+  {
+    _id: false
+  },
+);
 
 const DocumentsSchema = new Schema<IDocuments>({
     licenseImage: { type: String },
     vehicleRegistration: { type: String },
     insurance: { type: String },
-});
+},
+  {
+    _id: false
+  },
+);
 
 // Main Driver Schema
 const DriverSchema = new Schema<IDriver>(

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { adminRoutes } from "../modules/admin/admin.route";
 import { AuthRoutes } from "../modules/auth/auth.route";
 import { driverRoutes } from "../modules/driver/driver.route";
 import { PaymentRoutes } from "../modules/payment/payment.route";
@@ -23,6 +24,10 @@ const modelRoutes = [
   {
     path: "/drivers",
     route: driverRoutes,
+  },
+    {
+    path: "/admin",
+    route: adminRoutes,
   },
   {
     path: "/payment",

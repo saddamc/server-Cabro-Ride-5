@@ -109,14 +109,29 @@ const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> =
     });
 });
 
+// ✅ Suspend Driver
+const suspendDriver = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  console.log("online id✅:", id)
+
+    const result = await DriverService.suspendDriver(id)
+
+        sendResponse(res, {
+        statusCode: 201,
+        success: true,
+        message:` Driver available: 👀 ${result?.status}`,
+        data: result,
+        });
+})
+
 // ✅ Update Ride Status 
 const updateRideStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
   const driver = req.user as JwtPayload; 
-  const rating = req.body
-  console.log("driverId ✅:", id, driver)
+  // const rating = req.body
+  // console.log("driverId ✅:", id, driver)
 
-  const ride = await DriverService.updateRideStatus(id, driver.userId, rating);
+  const ride = await DriverService.updateRideStatus(id, driver.userId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -124,6 +139,27 @@ const updateRideStatus = async (req: Request, res: Response) => {
     message: `Ride status moved to ${ride.status}`,
     data: ride,
   });
+}
+
+// ✅ Rating Ride
+const ratingRide = async (req: Request, res: Response) => {
+
+        const riderId = (req.user as any).userId; 
+        const { id } = req.params;
+        const { rating, feedback } = req.body;
+        // console.log("controller ✅:", riderId, id, rating, feedback)
+
+        if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be between 1 and 5" });
+        }
+    const result = await DriverService.ratingRide(id, riderId, rating, feedback);
+    
+    sendResponse(res, {
+        statusCode: 200,
+        success: true, 
+        message: "Rating Successfully",
+        data: result,
+    })
 }
 
 // ✅ Earning History
@@ -142,15 +178,52 @@ const driverEarnings = async (req: Request, res: Response) => {
   });
 }
 
+// ✅ Update Driver
+const updateDriverDoc = async (req: Request, res: Response) => {
+  const driverId = (req.user as any).userId;
+  const payload = req.body;
+
+  const driver = await DriverService.updateDriverDoc(driverId, payload);
+  // console.log("✅ Driver updated:", driver);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Driver update successfully",
+    data: driver,
+  });
+}
+
+// ✅ Search Driver
+const findNearbyDrivers = async (req: Request, res: Response) => {
+  try {
+    const { lng, lat, distance } = req.query;
+    if (!lng || !lat)
+      return res.status(400).json({ success: false, message: "Longitude (lng) and latitude (lat) are required" });
+
+    const drivers = await DriverService.findNearbyDrivers(
+      parseFloat(lng as string),
+      parseFloat(lat as string),
+      distance ? parseInt(distance as string) : 5
+    );
+
+    res.status(200).json({ success: true, count: drivers.length, drivers });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
 
 export const DriverController = {
-    setOnlineOffline,
-    approvedDriver,
-    applyDriver,
-    acceptRide,
-    rejectRide,
-    updateRideStatus,
-    driverEarnings,
+  setOnlineOffline,
+  approvedDriver,
+  applyDriver,
+  acceptRide,
+  suspendDriver,
+  rejectRide,
+  updateRideStatus,
+  ratingRide,
+  driverEarnings,
+  findNearbyDrivers,
+  updateDriverDoc,
   }

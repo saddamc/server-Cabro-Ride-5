@@ -51,9 +51,9 @@ const updateUser = async (userId: string, payload: Partial<IUser>,
 
   if (decodedToken.role === Role.admin && ifUserExist.role === Role.super_admin) {        
     throw new AppError(401, "You are not authorized!!")
-   }
+  }
 
- if (payload.role) {
+  if (payload.role) {
     if (decodedToken.role === Role.rider || decodedToken.role === Role.driver) {
       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized!!!")
     }

@@ -1,10 +1,9 @@
 import { Request, Response, } from 'express';
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { NextFunction } from "express";
 import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
-import passport from "passport";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
@@ -14,39 +13,6 @@ import { createUserTokens } from "../../utils/userToken";
 import { User } from "../user/user.model";
 import { AuthServices } from "./auth.service";
 
-// ✅✅ credentialsLogin/Google Login
-const credentialsLogin = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-
-    passport.authenticate("local", async (err: any, user: any, info: any) => {
-
-      if (err) {
-        return next(new AppError(401, err))
-      }
-
-      if (!user) {
-        return next(new AppError(401, info.message))
-      }
-
-      const userTokens = createUserTokens(user)
-
-      const { password: pass, ...rest } = user.toObject();     
-
-    setAuthCookie(res, userTokens); 
-
-    sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "User Logged in Successfully",
-      data: {
-        accessToken: userTokens.accessToken,
-        refreshToken: userTokens.refreshToken,
-        user: rest
-      },
-    });
-    } )(req, res, next)    
-  }
-);
 
 // ✅ getNewAccessToken
 const getNewAccessToken = catchAsync(
@@ -196,30 +162,9 @@ const googleCallbackController = catchAsync(async (req: Request, res: Response, 
   res.redirect(`${envVars.FRONTEND_URL}/${redirectTo}`) 
 });
   
-// ✅ applyDriver
-// const applyDriver = catchAsync(async (req: Request, res: Response) => {
-// const userFromToken = req.user as JwtPayload; 
-  
-//   const payload: IDriver = {
-//     ...req.body,
-//     user: userFromToken.userId,
-//   };
-
-//   const result = await AuthServices.applyDriver(payload);
-  
-
-//   sendResponse(res, {
-//     statusCode: 201,
-//     success: true,
-//     message: "Driver application submitted successfully",
-//     data: result,
-//   });
-// })
-
 
 
 export const AuthControllers = {
-  credentialsLogin,
   getNewAccessToken,
   logout,
   changePassword,
@@ -227,5 +172,4 @@ export const AuthControllers = {
   forgotPassword,
   userVerification,
   googleCallbackController,
-  // applyDriver,
 };

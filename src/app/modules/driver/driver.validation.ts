@@ -19,8 +19,6 @@ export const driverValidationSchema = z.object({
     coordinates: z
         .array(z.number())
         .length(2, { message: 'Coordinates must be [longitude, latitude]' }),
-    address: z.string().optional(),
-    }),
     earnings: z.object({
     total: z.number().nonnegative().default(0),
     currency: z.string().default('USD'),

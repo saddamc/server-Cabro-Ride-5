@@ -12,13 +12,14 @@ router.post("/register", validateRequest(createUserZodSchema),
   UserControllers.createUser
 );
 
-
+router.post("/login", UserControllers.credentialsLogin)
 
 router.get("/me", checkAuth(...Object.values(Role)), UserControllers.getMe);
 
 router.get("/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.getSingleUser);
 
-router.patch("/:id", validateRequest(updateUserZodSchema), checkAuth(...Object.values(Role)), UserControllers.updateUser) 
+// ADMIN & USER
+router.patch("/update/:id", validateRequest(updateUserZodSchema), checkAuth(...Object.values(Role)), UserControllers.updateUser) 
 
 // ADMIN
 router.get("/users", checkAuth(Role.admin, Role.super_admin), UserControllers.getAllUsers);
