@@ -47,7 +47,6 @@ const userFromToken = req.user as JwtPayload;
 
 // ✅ online Driver status
 const setOnlineOffline = catchAsync(async (req: Request, res: Response) => {
-  // const { id } = req.params;
   // console.log("online id✅:", id)
   const idDriver = req.user as JwtPayload
   // console.log("idDriver✅:", idDriver)

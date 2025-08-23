@@ -5,7 +5,7 @@ import AppError from "../../errorHelpers/AppError";
 import { AuthRequest } from '../auth/auth.interface';
 import { Driver } from '../driver/driver.model';
 import { User } from '../user/user.model';
-import { IRide, RIDE_STATUS } from "./rider.interface";
+import { IRide } from "./rider.interface";
 import { Ride } from './rider.model';
 
 
@@ -29,7 +29,7 @@ const requestRide = async (payload: IRide) => {
     });
 
     if (activeRide) {
-        throw new Error("This rider already has a ride request in progress.");
+        throw new Error("You already has a ride request in progress.");
     }
 
     // Create the ride
@@ -53,8 +53,8 @@ const requestRide = async (payload: IRide) => {
 
 
 // ✅ Cancel Ride / update Ride
-const cancelRide = async (rideId: string, userId: any, payload: any) => {
-    const ride = await Ride.findById(rideId);
+const cancelRide = async (id: string, userId: any, payload: any) => {
+    const ride = await Ride.findById(id);
     if (!ride) {
         throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
     }
@@ -82,8 +82,9 @@ const cancelRide = async (rideId: string, userId: any, payload: any) => {
 
 
 // ✅ Ride History
-const getRideHistory = async (req: AuthRequest) => {
-    const userId = req.params.id;
+const getMyRides = async (req: AuthRequest) => {
+    const userId = req.user?.userId;
+    console.log("my",userId)
     if (!userId) {
         return { message: "User ID is required" };
     }
@@ -171,7 +172,6 @@ const getRideHistory = async (req: AuthRequest) => {
         if (ride.status === "completed") grouped.completed.push(ride);
         else if (ride.status === "requested") grouped.requested.push(ride);
         else if (ride.status === "cancelled") grouped.cancelled.push(ride);
-        // Note: Unhandled statuses are ignored; add more if needed
     });
 
     return {
@@ -182,7 +182,6 @@ const getRideHistory = async (req: AuthRequest) => {
         grouped,
     };
 };
-
 
 
 // ✅ Get all Ride
@@ -198,27 +197,31 @@ const getAllRide = async () => {
     }
 }
 
-// ✅ complete Ride => lot of works remaining
-const completeRide = async (id: string): Promise<IRide> => {
+// ✅ Rating Ride
+const ratingRide = async (id: string, riderId: string, rating: number, feedback?: string) => {
+
     const ride = await Ride.findById(id);
+    // console.log("service ✅", id, riderId, rating, feedback)
     if (!ride) {
-        throw new Error('Ride not found');
-    }
-    if (ride.status === "completed") {
-        throw new Error('Payment already complete');
+        throw new Error("Ride not found");
     }
 
-    //  Mark ride as completed
-    ride.paymentStatus = RIDE_STATUS.COMPLETE;
-    ride.timestamps.completed = new Date();
+    if (ride.rider.toString() !== riderId.toString()) {
+        throw new Error("You are not authorized to rate this ride");
+    }
 
-    //  Calculate Fare
-    ride.calculateFare();
+    if (ride.status !== "completed") {
+        throw new Error("You can only rate a completed ride");
+    }
 
-    //  Mark payment status (for now auto "completed", later integrate Stripe/SSLCommerz/etc.)
-    ride.status = 'completed';
+    ride.rating = {
+        ...ride.rating,
+        riderRating: rating,
+        riderFeedback: feedback,
+    };
 
     await ride.save();
+
     return ride;
 };
 
@@ -229,6 +232,6 @@ export const RideService = {
     requestRide,
     cancelRide,
     getAllRide,
-    getRideHistory,
-    completeRide,
+    getMyRides,
+    ratingRide,
 };

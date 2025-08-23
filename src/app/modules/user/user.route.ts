@@ -11,14 +11,21 @@ const router = Router();
 router.post("/register", validateRequest(createUserZodSchema), 
   UserControllers.createUser
 );
-router.get("/all-users", checkAuth(Role.admin, Role.super_admin),
-  UserControllers.getAllUsers);
+
+
 
 router.get("/me", checkAuth(...Object.values(Role)), UserControllers.getMe);
 
 router.get("/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.getSingleUser);
 
 router.patch("/:id", validateRequest(updateUserZodSchema), checkAuth(...Object.values(Role)), UserControllers.updateUser) 
+
+// ADMIN
+router.get("/users", checkAuth(Role.admin, Role.super_admin), UserControllers.getAllUsers);
+
+router.post("/block/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.setBlocked)
+
+
 
 
 

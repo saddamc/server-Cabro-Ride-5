@@ -88,6 +88,21 @@ const getSingleUser = catchAsync(async (req: Request, res: Response, next: NextF
     })
 })
 
+// ✅ Active / Blocked user
+const setBlocked = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  // console.log("online id✅:", id)
+
+    const result = await UserServices.setBlocked(id)
+
+        sendResponse(res, {
+        statusCode: 201,
+        success: true,
+        message:` Driver available: 👀 ${result?.isActive}`,
+        data: result,
+        });
+})
+
 
 
 export const UserControllers = {
@@ -96,5 +111,6 @@ export const UserControllers = {
   updateUser,
   getMe,
   getSingleUser,
+  setBlocked,
 };
 

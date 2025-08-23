@@ -13,7 +13,7 @@ const modelRoutes = [
     route: userRoutes,
   },
   {
-    path: "/auths",
+    path: "/auth",
     route: AuthRoutes,
   },
   {

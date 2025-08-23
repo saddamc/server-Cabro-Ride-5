@@ -32,6 +32,7 @@ export interface IUser extends Document {
   isDeleted?: boolean;  
   createdAt?: Date;
   updatedAt?: Date;
+  userId?: string;
 }
 
 export interface AuthenticatedRequest extends Request {

@@ -12,7 +12,7 @@ export enum PAYMENT_STATUS {
 }
 
 export interface IPayment {
-    ride: Types.ObjectId; // Reference to the ride
+    rider: Types.ObjectId; // Reference to the ride
     driver: Types.ObjectId; // Reference to the driver
     transactionId: string;
     amount: number; 

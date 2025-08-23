@@ -7,19 +7,19 @@ import { DriverController } from "./driver.controller";
 const router = Router();
 
 
-router.post("/apply-driver", checkAuth(...Object.values(Role)), DriverController.applyDriver)
+router.post("/apply", checkAuth(...Object.values(Role)), DriverController.applyDriver)
 
-router.post("/online-offline", checkAuth(...Object.values(Role)), DriverController.setOnlineOffline)
+router.post("/available", checkAuth(...Object.values(Role)), DriverController.setOnlineOffline)
 
 router.post("/accept-ride/:id", checkAuth(...Object.values(Role)), DriverController.acceptRide)
 
-router.patch("/reject/:id", checkAuth(...Object.values(Role)), DriverController.rejectRide)
+router.patch("/reject-ride/:id", checkAuth(...Object.values(Role)), DriverController.rejectRide)
 
-router.patch("/driver-status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
+router.patch("/update-status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
 
 router.get("/earning", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
 
-
+// ADMIN
 router.post("/status/:id", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
 
 

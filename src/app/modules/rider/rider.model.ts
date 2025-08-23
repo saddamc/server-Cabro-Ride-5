@@ -60,7 +60,7 @@ const rideSchema = new Schema<IRide>(
       cancelledAt: Date,
     },
     rating: {
-      riderRating: Number,
+      riderRating: {type: Number },
       driverRating: Number,
       riderFeedback: String,
       driverFeedback: String,
@@ -68,7 +68,6 @@ const rideSchema = new Schema<IRide>(
     paymentStatus: {
         type: String,
         enum: Object.values(RIDE_STATUS),
-        default: RIDE_STATUS.PENDING
     },
     notes: String,
   },

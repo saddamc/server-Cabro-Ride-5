@@ -5,7 +5,7 @@ import { calculateDistance } from '../../utils/calculateDistance';
 import { getTransactionId } from '../../utils/getTransaction';
 import { PAYMENT_STATUS } from '../payment/payment.interface';
 import { Payment } from '../payment/payment.model';
-import { IRide, RIDE_STATUS, RideStatus, statusFlow } from '../rider/rider.interface';
+import { IRideRating, RIDE_STATUS, RideStatus, statusFlow } from '../rider/rider.interface';
 import { Ride } from '../rider/rider.model';
 import { ISSLCommerz } from '../sslCommerz/sslCommerz.interface';
 import { SSLService } from '../sslCommerz/sslCommerz.service';
@@ -301,10 +301,10 @@ const rejectRide = async (id: string, driverId: string) => {
 };
 
 // ✅ Update Ride Status
-const updateRideStatus = async (id: string, driver: string, rating: IRide) => {
+const updateRideStatus = async (id: string, driver: string, rating: IRideRating) => {
     const transactionId = getTransactionId();
 
-    const {driverRating, driverFeedback} = rating
+    const { driverRating, driverFeedback } = rating;
 
     const session = await Ride.startSession();
     session.startTransaction();
@@ -389,7 +389,7 @@ const updateRideStatus = async (id: string, driver: string, rating: IRide) => {
             const payment = await Payment.create(
             [
                 {
-                ride: ride._id,
+                rider: ride._id,
                 driver: driverDoc._id,
                 status: PAYMENT_STATUS.PAID,  //change when add payment system 
                 transactionId,
@@ -460,7 +460,7 @@ const driverEarnings = async (driverUserId: string) => {
     const driverId = await Driver.findOne({user: driverUserId})
 
     const payments = await Payment.find({ driver: driverId, status: "PAID" })
-        .populate("ride", "status duration distance") // optional populate
+        .populate("rider", "status duration distance") // optional populate
         .sort({ createdAt: -1 });
 
     // Total earnings
@@ -472,7 +472,7 @@ const driverEarnings = async (driverUserId: string) => {
         history: payments.map((p) => ({
         amount: p.amount,
         createdAt: p.createdAt,
-        rideId: p.ride,
+        rideId: p.rider,
         transactionId: p.transactionId,
         })),
     };

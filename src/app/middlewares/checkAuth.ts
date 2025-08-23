@@ -48,7 +48,7 @@ export const checkAuth =
       if (!isUserExist.isVerified) {
         throw new AppError(httpStatus.BAD_REQUEST, "User is not verified 🧑‍💻");
       }
-
+// console.log("auth✅:", (verifiedToken.role))
       if (!authRoles.includes(verifiedToken.role)) {
         throw new AppError(403, "You are not permitted to view this route 🧑‍💻");
       }

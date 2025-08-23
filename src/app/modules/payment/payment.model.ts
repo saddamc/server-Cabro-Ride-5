@@ -4,7 +4,7 @@ import { IPayment, PAYMENT_STATUS } from "../payment/payment.interface";
 
 
 const paymentSchema = new Schema<IPayment>({
-    ride: {
+    rider: {
         type: Schema.Types.ObjectId,
         ref: "Ride",
         required: true,

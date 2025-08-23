@@ -53,9 +53,8 @@ const cancelRide = catchAsync(async (req: Request, res: Response) => {
 
 
 // ✅ Ride History
-const getRideHistory = catchAsync(async (req: Request, res: Response) => {
-
-    const result = await RideService.getRideHistory(req as any);
+const getMyRides = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getMyRides(req as any);
 
     sendResponse(res, {
         statusCode: 200,
@@ -66,8 +65,6 @@ const getRideHistory = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-
-
 // ✅ Get all Ride
 const getAllRide = catchAsync(async (req: Request, res: Response) => {
     const result = await RideService.getAllRide();
@@ -75,35 +72,38 @@ const getAllRide = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: 200,
         success: true, 
-        message: "Ride Retrieved Successfully",
+        message: "All Ride Retrieved Successfully",
         data: result.data,
         meta: result.meta
     })
 })
 
 // ✅ 
-const completeRide = async (req: Request, res: Response) => {
-    try {
-    const { id } = req.params; // frontend sends rideId in URL
+const ratingRide = async (req: Request, res: Response) => {
 
-    const ride = await RideService.completeRide(id);
+        const riderId = (req.user as any).userId; 
+        const { id } = req.params;
+        const { rating, feedback } = req.body;
+        // console.log("controller ✅:", riderId, id, rating, feedback)
 
+        if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be between 1 and 5" });
+        }
+    const result = await RideService.ratingRide(id, riderId, rating, feedback);
+    
     sendResponse(res, {
         statusCode: 200,
         success: true, 
-        message: "Ride Retrieved Successfully",
-        data: ride,
+        message: "Rating Successfully",
+        data: result,
     })
-    } catch (error: any) {
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+}
 
 
 export const RideController = {
     requestRide,
     cancelRide,
     getAllRide, 
-    getRideHistory,
-    completeRide,
+    getMyRides,
+    ratingRide,
 };

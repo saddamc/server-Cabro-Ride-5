@@ -3,7 +3,7 @@ import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { IAuthProvider, IUser, Role } from "./user.interface";
+import { IAuthProvider, IsActive, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 
 // ✅ createUser
@@ -105,6 +105,35 @@ const getSingleUser = async (id: string) => {
   }
 }
 
+// Active / Blocked user
+const setBlocked = async (id: string) => {
+
+    const user = await User.findById(id)
+    // console.log("who:", user)
+    if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User Not Found !")
+    }
+
+    if (user?.isActive === IsActive.INACTIVE) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User is Inactive. ⚠️")
+    }
+
+    if (user?.isDeleted === true) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User is Delected ⚠️");
+    }
+
+    const newStatus =
+    user.isActive === IsActive.ACTIVE ? IsActive.BLOCKED : IsActive.ACTIVE;
+
+    const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { isActive: newStatus },
+        { new: true }
+    );
+
+    return updatedUser;
+}
+
 
 
 export const UserServices = {
@@ -113,4 +142,5 @@ export const UserServices = {
   updateUser,
   getMe, 
   getSingleUser,
+  setBlocked,
 };
