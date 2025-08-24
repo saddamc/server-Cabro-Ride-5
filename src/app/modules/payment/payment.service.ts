@@ -11,14 +11,14 @@ import { Payment } from "./payment.model";
 const initPayment = async (id: string) => {
 
     const payment = await Payment.findOne({ id: id })
-    console.log("payment ✅:", payment)
+    // console.log("payment ✅:", payment)
 
     if (!payment) {
         throw new AppError(httpStatus.NOT_FOUND, "Payment Not Found. You have not booked this tour")
     }
 
-    const booking = await Ride.findById(payment.ride)
-    console.log("payment ✅:", payment)
+    const booking = await Ride.findById(payment.rider)
+    // console.log("payment ✅:", payment)
 
     const userAddress = (booking?.rider as any).address
     const userEmail = (booking?.rider as any).email

@@ -22,7 +22,7 @@ router.get("/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.getS
 router.patch("/update/:id", validateRequest(updateUserZodSchema), checkAuth(...Object.values(Role)), UserControllers.updateUser) 
 
 // ADMIN
-router.get("/users", checkAuth(Role.admin, Role.super_admin), UserControllers.getAllUsers);
+router.get("/", checkAuth(Role.admin, Role.super_admin), UserControllers.getAllUsers);
 
 router.post("/block/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.setBlocked)
 

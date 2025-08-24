@@ -112,7 +112,7 @@ const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> =
 // ✅ Suspend Driver
 const suspendDriver = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  console.log("online id✅:", id)
+  // console.log("online id✅:", id)
 
     const result = await DriverService.suspendDriver(id)
 

@@ -4,10 +4,10 @@ import { model, Schema } from 'mongoose';
 import { IDocuments, IDriver, IEarnings, ILocation, IRating, IVehicleType } from './driver.interface';
 
 const VehicleInfoSchema = new Schema<IVehicleType>({
-  make: { type: String, },
+  make: { type: String, uppercase: true },
   model: { type: String, required: true },
   year: { type: Number, required: true },
-  plateNumber: { type: String, unique:true, required: true },
+  plateNumber: { type: String, unique:true, required: true, uppercase: true },
   color: {type:String}
 },
   {
@@ -61,7 +61,7 @@ const DocumentsSchema = new Schema<IDocuments>({
 const DriverSchema = new Schema<IDriver>(
     {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    licenseNumber: { type: String, required: true, unique: true },
+    licenseNumber: { type: String, required: true, unique: true, uppercase: true },
     vehicleType: { type: VehicleInfoSchema},
     status: {
         type: String,

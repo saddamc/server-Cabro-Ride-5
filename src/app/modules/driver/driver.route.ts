@@ -15,9 +15,9 @@ router.post("/accept-ride/:id", checkAuth(...Object.values(Role)), DriverControl
 
 router.patch("/reject-ride/:id", checkAuth(...Object.values(Role)), DriverController.rejectRide)
 
-router.patch("/update-status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
+router.patch("/status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
 
-router.get("/earning", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
+router.get("/earnings", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
 
 router.get("/nearby", checkAuth(...Object.values(Role)), DriverController.findNearbyDrivers)
 
@@ -27,7 +27,7 @@ router.patch("/update-me", checkAuth(...Object.values(Role)), DriverController.u
 router.patch("/rating/:id", checkAuth(...Object.values(Role)), DriverController.ratingRide)
 
 // ADMIN
-router.post("/status/:id", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
+router.post("approved-driver/:id/", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
 
 router.post("/suspend/:id",checkAuth(Role.admin, Role.super_admin), DriverController.suspendDriver)
 

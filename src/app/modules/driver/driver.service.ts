@@ -305,7 +305,6 @@ const rejectRide = async (id: string, driverId: string) => {
 const suspendDriver = async (id: any) => {
 
     const driver = await Driver.findById(id)
-    console.log("who:", driver)
     if (!driver?._id) {
         throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !")
     }
@@ -495,8 +494,8 @@ const ratingRide = async (id: string, riderId: string, rating: number, feedback?
     if (!ride) {
         throw new Error("Ride not found");
     }
-
-    if (ride.rider.toString() !== riderId.toString()) {
+// console.log("Matching Driver: ✅", ride.rider.toString() !== riderId.toString())
+    if (ride.rider.toString() === riderId.toString()) {
         throw new Error("You are not authorized to rate this ride");
     }
 

@@ -9,7 +9,7 @@ import { RideService } from './rider.service';
 // ✅ Request Ride
 const requestRide = catchAsync(async (req: Request, res: Response) => {
     const id = req.user as JwtPayload
-    console.log("idDriver✅:", id)
+    // console.log("idDriver✅:", id)
     const payload = {
         ...req.body,
         rider: id.userId  

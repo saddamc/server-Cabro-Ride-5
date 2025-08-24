@@ -54,7 +54,7 @@ const sslPaymentInit = async (payload: ISSLCommerz) => {
         return response.data;
 
     } catch (error: any) {
-        console.log("Payment Error Occurred", error);
+        // console.log("Payment Error Occurred", error);
         throw new AppError(httpStatus.BAD_REQUEST, error.message)
     }
 }
@@ -67,14 +67,14 @@ const validatePayment = async (payload: any) => {
             url: `${envVars.SSL.SSL_VALIDATION_API}?val_id=${payload.val_id}&store_id=${envVars.SSL.STORE_ID}&store_passwd=${envVars.SSL.STORE_PASS}`
         })
 
-        console.log("SSLCommerz validate api response", response.data);   // check in vercel logs
+        // console.log("SSLCommerz validate api response", response.data);   // check in vercel logs
 
         await Payment.updateOne(
             { transactionId: payload.tran_id },
             { paymentGatewayData: response.data },
             { runValidators: true })
     } catch (error: any) {
-        console.log(error);
+        // console.log(error);
         throw new AppError(401, `Payment Validation Error, ${error.message}`)
     }
 }

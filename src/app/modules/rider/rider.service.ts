@@ -84,7 +84,7 @@ const cancelRide = async (id: string, userId: any, payload: any) => {
 // ✅ Ride History
 const getMyRides = async (req: AuthRequest) => {
     const userId = req.user?.userId;
-    console.log("my",userId)
+    // console.log("my",userId)
     if (!userId) {
         return { message: "User ID is required" };
     }
