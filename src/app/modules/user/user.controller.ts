@@ -15,10 +15,13 @@ import { UserServices } from "./user.service";
 // ✅✅ credentialsLogin/Google Login
 const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
+    console.log('🔍 User Controller: Login attempt with email:', req.body?.email);
 
     passport.authenticate("local", async (err: any, user: any, info: any) => {
+      console.log('🔍 User Controller: Passport authenticate callback - err:', !!err, 'user:', !!user, 'info:', info);
 
       if (err) {
+        console.log('🔍 User Controller: Auth error:', err);
         return next(new AppError(401, err))
       }
 
