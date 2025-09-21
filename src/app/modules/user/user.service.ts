@@ -91,7 +91,7 @@ const getAllUsers = async () => {
 
 // ✅ getMe
 const getMe = async (userId: string) => {
-  const user = await User.findById(userId).select("-password -auths");
+  const user = await User.findById(userId).select("-password");
   return {
     data: user
   }
@@ -99,7 +99,7 @@ const getMe = async (userId: string) => {
 
 // ✅ getSingleUser
 const getSingleUser = async (id: string) => {
-  const user = await User.findById(id).select("-password -auths");
+  const user = await User.findById(id).select("-password");
   return {
     data: user
   }

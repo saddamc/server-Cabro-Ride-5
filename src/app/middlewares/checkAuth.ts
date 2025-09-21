@@ -1,11 +1,12 @@
-// import { NextFunction, Request, Response } from "express";
-// import httpStatus from "http-status-codes";
-// import { JwtPayload } from "jsonwebtoken";
-// import { envVars } from "../config/env";
-// import AppError from "../errorHelpers/AppError";
-// import { IsActive } from "../modules/user/user.interface";
-// import { User } from "../modules/user/user.model";
-// import { verifyToken } from "../utils/jwt";
+import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status-codes";
+import { JwtPayload } from "jsonwebtoken";
+import { envVars } from "../config/env";
+import AppError from "../errorHelpers/AppError";
+import { IsActive } from "../modules/user/user.interface";
+import { User } from "../modules/user/user.model";
+import { verifyToken } from "../utils/jwt";
+
 
 // // ✅ checkAuth
 // export const checkAuth =
@@ -64,34 +65,21 @@
 
 
 // ! new version modified 
-import { NextFunction, Request, Response } from "express";
-import httpStatus from "http-status-codes";
-import { JwtPayload } from "jsonwebtoken";
-import { envVars } from "../config/env";
-import AppError from "../errorHelpers/AppError";
-import { IsActive } from "../modules/user/user.interface";
-import { User } from "../modules/user/user.model";
-import { verifyToken } from "../utils/jwt";
-
-// Extend Express Request type to add user property
-declare module "express-serve-static-core" {
-  interface Request {
-    user?: JwtPayload;
-  }
-}
-
-// ✅ Auth middleware
 export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authHeader = req.headers.authorization;
+      // 1. Try from cookie
+      let token = req.cookies?.accessToken;
 
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        throw new AppError(httpStatus.UNAUTHORIZED, "No token received 🧑‍💻");
+      // 2. If not in cookie, check Authorization header
+      if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+        token = req.headers.authorization.split(" ")[1];
       }
 
-      const token = authHeader.split(" ")[1]; // extract JWT only
+      if (!token) {
+        throw new AppError(httpStatus.UNAUTHORIZED, "No token received 🧑‍💻");
+      }
 
       const verifiedToken = verifyToken(
         token,
@@ -103,7 +91,6 @@ export const checkAuth =
       }
 
       const isUserExist = await User.findOne({ email: verifiedToken.email });
-
       if (!isUserExist) {
         throw new AppError(httpStatus.UNAUTHORIZED, "User does not exist 🧑‍💻");
       }
@@ -126,7 +113,7 @@ export const checkAuth =
         throw new AppError(httpStatus.FORBIDDEN, "User is not verified 🧑‍💻");
       }
 
-      // Role-based check (only if roles were passed)
+      // Role-based check
       if (authRoles.length > 0 && !authRoles.includes(verifiedToken.role)) {
         throw new AppError(
           httpStatus.FORBIDDEN,
@@ -134,13 +121,10 @@ export const checkAuth =
         );
       }
 
-      // Attach user info to request
       req.user = verifiedToken;
-
       next();
     } catch (error) {
       console.error("JWT Auth error 🧑‍💻", error);
       next(error);
     }
   };
-

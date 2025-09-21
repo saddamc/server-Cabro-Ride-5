@@ -6,6 +6,7 @@
 // }
 
 // export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
+//   console.log("Setting auth cookies:", tokenInfo); // Debug log
 //   if (tokenInfo.accessToken) {
 //     res.cookie("accessToken", tokenInfo.accessToken, {
 //       httpOnly: true,
@@ -32,12 +33,13 @@ export interface AuthTokens {
 }
 
 export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
+  console.log("Setting auth cookies✅:", tokenInfo); // Debug log
   // Access Token Cookie (short-lived)
   if (tokenInfo.accessToken) {
     res.cookie("accessToken", tokenInfo.accessToken, {
       httpOnly: true, // JS cannot access
-      secure: envVars.NODE_ENV === "production", // only HTTPS in production
-      sameSite: "none", // required for cross-site cookies
+      secure: false, // only HTTPS in production
+      sameSite: "lax", // required for cross-site cookies
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
   }

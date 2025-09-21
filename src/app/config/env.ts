@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 interface EnvConfig {
   PORT: string;
@@ -80,6 +82,7 @@ const loadEnvVariable = (): EnvConfig => {
     "CLOUDINARY_CLOUD_NAME",
     "CLOUDINARY_API_KEY",
     "CLOUDINARY_API_SECRET",
+    "SMTP_PASS",
     "SMTP_PORT",
     "SMTP_HOST",
     "SMTP_USER",

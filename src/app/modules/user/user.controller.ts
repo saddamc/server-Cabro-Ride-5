@@ -1,53 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
-import passport from "passport";
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
-import { setAuthCookie } from "../../utils/setCookie";
-import { createUserTokens } from "../../utils/userToken";
 import { UserServices } from "./user.service";
 
 
-// ✅✅ credentialsLogin/Google Login
-const credentialsLogin = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    console.log('🔍 User Controller: Login attempt with email:', req.body?.email);
-
-    passport.authenticate("local", async (err: any, user: any, info: any) => {
-      console.log('🔍 User Controller: Passport authenticate callback - err:', !!err, 'user:', !!user, 'info:', info);
-
-      if (err) {
-        console.log('🔍 User Controller: Auth error:', err);
-        return next(new AppError(401, err))
-      }
-
-      if (!user) {
-        return next(new AppError(401, info.message))
-      }
-
-      const userTokens = createUserTokens(user)
-
-      const { password: pass, ...rest } = user.toObject();     
-
-    setAuthCookie(res, userTokens); 
-
-    sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "User Logged in Successfully",
-      data: {
-        accessToken: userTokens.accessToken,
-        refreshToken: userTokens.refreshToken,
-        user: rest
-      },
-    });
-    } )(req, res, next)    
-  }
-);
 
 
 // ✅ createUser
@@ -150,7 +111,6 @@ const setBlocked = catchAsync(async (req: Request, res: Response) => {
 
 export const UserControllers = {
   createUser,
-  credentialsLogin,
   getAllUsers,
   updateUser,
   getMe,
