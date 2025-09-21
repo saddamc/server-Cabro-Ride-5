@@ -39,7 +39,7 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
     res.cookie("accessToken", tokenInfo.accessToken, {
       httpOnly: true, // JS cannot access
       secure: false, // only HTTPS in production
-      sameSite: "lax", // required for cross-site cookies
+      sameSite: envVars.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
   }
@@ -49,7 +49,7 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
     res.cookie("refreshToken", tokenInfo.refreshToken, {
       httpOnly: true,
       secure: envVars.NODE_ENV === "production",
-      sameSite: "none",
+      sameSite: envVars.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }

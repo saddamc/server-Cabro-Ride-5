@@ -100,7 +100,7 @@ const userVerification = async (email: string) => {
   if (!isUserExist) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
-
+console.log("isUserExist.isVerified✅:", isUserExist.isVerified)
   if (isUserExist.isVerified) {
     throw new AppError(httpStatus.BAD_REQUEST, "User is already verified");
   }
