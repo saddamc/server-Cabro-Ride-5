@@ -2,6 +2,7 @@ import { Router } from "express";
 import { adminRoutes } from "../modules/admin/admin.route";
 import { AuthRoutes } from "../modules/auth/auth.route";
 import { driverRoutes } from "../modules/driver/driver.route";
+import { OtpRoutes } from "../modules/otp/otp.route";
 import { PaymentRoutes } from "../modules/payment/payment.route";
 import { riderRoutes } from "../modules/rider/rider.route";
 import { userRoutes } from "../modules/user/user.route";
@@ -16,6 +17,10 @@ const modelRoutes = [
   {
     path: "/auth",
     route: AuthRoutes,
+  },
+  {
+    path: "/otp", 
+    route: OtpRoutes,
   },
   {
     path: "/rides",

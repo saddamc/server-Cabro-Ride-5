@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { Request, Response, } from 'express';
 /* eslint-disable @typescript-eslint/no-unused-vars */
- 
+import bcryptjs from "bcryptjs";
 import { NextFunction } from "express";
 import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
-import passport from '../../config/passport';
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
@@ -20,31 +19,24 @@ import { AuthServices } from "./auth.service";
 // ✅ User credientialsLogin
 const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    // const loginInfo = await AuthServices.credentialsLogin(req.body);
+    const { email, password } = req.body;
 
-    passport.authenticate("local", async (err: any, user: any, info: any) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(new AppError(401, "User does not exist"));
+    }
 
-      if (err) {
-        
-        // return next(err)  //show global error
-        return next(new AppError(401, err))
-        // return next(new AppError(err.statusCode || 401, err.message))
-      }
+    const isPasswordMatched = await bcryptjs.compare(password, user.password as string);
+    if (!isPasswordMatched) {
+      return next(new AppError(401, "Password does not match"));
+    }
 
-      if (!user) {
-        // console.log("from !user")
+    const userTokens = await createUserTokens(user);
+    const { password: pass, ...rest } = user.toObject();
 
-        // return new AppError(404, info.message)
-        return next(new AppError(401, info.message))
-      }
+    setAuthCookie(res, userTokens);
 
-      const userTokens = await createUserTokens(user)
-
-      // delete user.toObject().password
-
-      const { password: pass, ...rest } = user.toObject();     
-
-    setAuthCookie(res, userTokens); 
+    const redirectTo = !user.isVerified ? "/verify" : "/";
 
     sendResponse(res, {
       success: true,
@@ -53,12 +45,56 @@ const credentialsLogin = catchAsync(
       data: {
         accessToken: userTokens.accessToken,
         refreshToken: userTokens.refreshToken,
-        user: rest
+        user: rest,
+        redirectTo,
       },
     });
-    } )(req, res, next)    
   }
 );
+
+// ! old version
+// const credentialsLogin = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     // const loginInfo = await AuthServices.credentialsLogin(req.body);
+
+//     passport.authenticate("local", async (err: any, user: any, info: any) => {
+
+//       if (err) {
+        
+//         // return next(err)  //show global error
+//         return next(new AppError(401, err))
+//         // return next(new AppError(err.statusCode || 401, err.message))
+//       }
+
+//       if (!user) {
+//         // console.log("from !user")
+
+//         // return new AppError(404, info.message)
+//         return next(new AppError(401, info.message))
+//       }
+
+//       const userTokens = await createUserTokens(user)
+
+//       // delete user.toObject().password
+
+//       const { password: pass, ...rest } = user.toObject();     
+
+//       setAuthCookie(res, userTokens); 
+
+//     sendResponse(res, {
+//       success: true,
+//       statusCode: httpStatus.OK,
+//       message: "User Logged in Successfully",
+//       data: {
+//         accessToken: userTokens.accessToken,
+//         refreshToken: userTokens.refreshToken,
+//         user: rest,
+//       },
+//     });
+//     } )(req, res, next)    
+//   }
+// );
+
 
 
 
@@ -164,31 +200,6 @@ const forgotPassword = catchAsync(
   }
 );
 
-// ✅ userVerification
-const userVerification = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { email } = req.body;
-
-    const user = await User.findOneAndUpdate(
-      { email },
-      { isVerified: true },
-      { new: true }
-    );
-
-    if (!user) {
-      return next(new AppError(httpStatus.NOT_FOUND, "User not found"));
-    }
-
-    sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "User Verified Successfully",
-      data: user, 
-    });
-  }
-);
-
-
 
 // ✅ googleCallbackController
 const googleCallbackController = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -219,6 +230,5 @@ export const AuthControllers = {
   changePassword,
   setPassword,
   forgotPassword,
-  userVerification,
   googleCallbackController,
 };

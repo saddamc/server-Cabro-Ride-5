@@ -93,34 +93,7 @@ const forgotPassword = async (email: string) => {
   })
 }
 
-// ✅ userVerification
-const userVerification = async (email: string) => {
-  const isUserExist = await User.findOne({ email });
 
-  if (!isUserExist) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
-console.log("isUserExist.isVerified✅:", isUserExist.isVerified)
-  if (isUserExist.isVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User is already verified");
-  }
-
-  const verificationToken = jwt.sign(
-    { userId: isUserExist._id, email: isUserExist.email },
-    envVars.JWT_ACCESS_SECRET,
-    { expiresIn: "1d" }
-  );
-  const verificationLink = `${envVars.FRONTEND_URL}/verify-user?token=${verificationToken}`;  
-  sendEmail({
-    to: isUserExist.email,
-    subject: "Verify Your Account",
-    templateName: "userVerification",
-    templateData: {
-      name: isUserExist.name,
-      text: `Click on the link to verify your account: ${verificationLink}`,
-    }
-  });
-}
 
 
 // ✅ setPassword
@@ -164,5 +137,4 @@ const setPassword = async (userId: string, password: string) => {
     changePassword,
     forgotPassword,
     setPassword,
-    userVerification,
   };

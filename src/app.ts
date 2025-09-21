@@ -25,7 +25,7 @@ app.use(expressSession(
   }
 ));
 
-// Passport
+// Passport for google login
 app.use(passport.initialize());
 app.use(passport.session());
 

@@ -3,6 +3,8 @@ import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { envVars } from "./app/config/env";
+import { connectRedis } from "./app/config/redis.config";
+// import { connectRedis } from "./app/config/redis.config";
 
 let server: Server;
 
@@ -10,6 +12,9 @@ const startServer = async () => {
   try {
     await mongoose.connect(envVars.DB_URL);
     console.log("Connected to DB!");
+
+ 
+
 
     server = app.listen(envVars.PORT, () => {
       console.log(`Server is listening to port ${envVars.PORT}`);
@@ -20,9 +25,10 @@ const startServer = async () => {
 };
 
 (async () => {
-  await startServer();
+    await startServer();
+    await connectRedis();
   // await seedSuperAdmin()
-})()
+})();
 
 // signal termination => sigterm (we can't see the error in visually)
 process.on("SIGTERM", () => {
@@ -32,7 +38,6 @@ process.on("SIGTERM", () => {
 Shutting down the server gracefully...
 =======================================
 `);
-
 
   if (server) {
     server.close(() => {
@@ -51,8 +56,6 @@ Shutting down the server gracefully...
 =======================================
 `);
 
-
-
   if (server) {
     server.close(() => {
       //express app server
@@ -62,6 +65,3 @@ Shutting down the server gracefully...
 
   process.exit(1);
 });
-
-
-

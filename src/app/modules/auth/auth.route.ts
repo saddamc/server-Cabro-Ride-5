@@ -20,7 +20,7 @@ router.post("/set-password", checkAuth(...Object.values(Role)), AuthControllers.
 
 router.post("/forgot-password", AuthControllers.forgotPassword);
 
-router.post("/verify-user", AuthControllers.userVerification);
+
 
 
 
