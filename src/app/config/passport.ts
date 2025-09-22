@@ -71,7 +71,7 @@ passport.use(
           return done(null, false, { message: "No email found" });
         }
 
-      let user = await User.findOne({ email });
+        let user = await User.findOne({ email });
 
         if (!user) {
           // create new user
@@ -80,7 +80,7 @@ passport.use(
             name: profile.displayName,
             profilePicture: profile.photos?.[0]?.value || null,
             role: Role.rider,
-            isVerified: true,
+            isVerified: true, // Google authenticated users are considered verified
             auths: [
               {
                 provider: "google",
@@ -94,13 +94,17 @@ passport.use(
             user.profilePicture = profile.photos[0].value;
             await user.save();
           }
+          
+          // Check if this is a Google auth user and update verification if needed
+          const isGoogleUser = user.auths.some(auth => auth.provider === "google");
+          if (isGoogleUser && !user.isVerified) {
+            user.isVerified = true;
+            await user.save();
+          }
         }
-
-        console.log("Google profile object:", JSON.stringify(profile, null, 2));
 
         return done(null, user);
       } catch (error) {
-        // console.log("Google Strategy Error", error);
         return done(error);
       }
     }
@@ -109,15 +113,21 @@ passport.use(
 
 
 passport.serializeUser((user: any, done: (err: any, id?: unknown) => void) => {
+  if (!user || !user._id) {
+    return done(new Error("Failed to serialize user - missing user or user._id"));
+  }
   done(null, user._id);
 });
 
 passport.deserializeUser(async (id: string, done: any) => {
   try {
     const user = await User.findById(id);
+    if (!user) {
+      return done(new Error("User not found in deserialization"));
+    }
     done(null, user);
   } catch (error) {
-    console.log(error);
+    console.log("Deserialize error:", error);
     done(error);
   }
 });

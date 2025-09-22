@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
  
 import { Request, Response, } from 'express';
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import bcryptjs from "bcryptjs";
 import { NextFunction } from "express";
 import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
-import passport from 'passport';
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
@@ -13,73 +12,32 @@ import { sendResponse } from "../../utils/sendResponse";
 import { setAuthCookie } from "../../utils/setCookie";
 import { createUserTokens } from "../../utils/userToken";
 import { IUser } from '../user/user.interface';
+import { User } from "../user/user.model";
 import { AuthServices } from "./auth.service";
 
 
 // ✅ User credientialsLogin
-// const credentialsLogin = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const { email, password } = req.body;
-
-//     const user = await User.findOne({ email });
-//     if (!user) {
-//       return next(new AppError(401, "User does not exist"));
-//     }
-
-//     const isPasswordMatched = await bcryptjs.compare(password, user.password as string);
-//     if (!isPasswordMatched) {
-//       return next(new AppError(401, "Password does not match"));
-//     }
-
-//     const userTokens = await createUserTokens(user);
-//     const { password: pass, ...rest } = user.toObject();
-
-//     setAuthCookie(res, userTokens);
-
-//     const redirectTo = !user.isVerified ? "/verify" : "/";
-
-//     sendResponse(res, {
-//       success: true,
-//       statusCode: httpStatus.OK,
-//       message: "User Logged in Successfully",
-//       data: {
-//         accessToken: userTokens.accessToken,
-//         refreshToken: userTokens.refreshToken,
-//         user: rest,
-//         redirectTo,
-//       },
-//     });
-//   }
-// );
-
-// ! old version
 const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    // const loginInfo = await AuthServices.credentialsLogin(req.body);
+    const { email, password } = req.body;
 
-    passport.authenticate("local", async (err: any, user: any, info: any) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(new AppError(401, "User does not exist"));
+    }
 
-      if (err) {
-        
-        // return next(err)  //show global error
-        return next(new AppError(401, err))
-        // return next(new AppError(err.statusCode || 401, err.message))
-      }
+    const isPasswordMatched = await bcryptjs.compare(password, user.password as string);
+    if (!isPasswordMatched) {
+      return next(new AppError(401, "Password does not match"));
+    }
 
-      if (!user) {
-        // console.log("from !user")
+    const userTokens = await createUserTokens(user);
+    const { password: pass, ...rest } = user.toObject();
 
-        // return new AppError(404, info.message)
-        return next(new AppError(401, info.message))
-      }
+    setAuthCookie(res, userTokens);
 
-      const userTokens = await createUserTokens(user)
-
-      // delete user.toObject().password
-
-      const { password: pass, ...rest } = user.toObject();     
-
-      setAuthCookie(res, userTokens); 
+    // Determine where to redirect based on verification status
+    const redirectTo = !user.isVerified ? "/verify" : "/";
 
     sendResponse(res, {
       success: true,
@@ -89,11 +47,54 @@ const credentialsLogin = catchAsync(
         accessToken: userTokens.accessToken,
         refreshToken: userTokens.refreshToken,
         user: rest,
+        redirectTo,
       },
     });
-    } )(req, res, next)    
   }
 );
+
+// ! old version
+// const credentialsLogin = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     // const loginInfo = await AuthServices.credentialsLogin(req.body);
+
+//     passport.authenticate("local", async (err: any, user: any, info: any) => {
+
+//       if (err) {
+        
+//         // return next(err)  //show global error
+//         return next(new AppError(401, err))
+//         // return next(new AppError(err.statusCode || 401, err.message))
+//       }
+
+//       if (!user) {
+//         // console.log("from !user")
+
+//         // return new AppError(404, info.message)
+//         return next(new AppError(401, info.message))
+//       }
+
+//       const userTokens = await createUserTokens(user)
+
+//       // delete user.toObject().password
+
+//       const { password: pass, ...rest } = user.toObject();     
+
+//       setAuthCookie(res, userTokens); 
+
+//     sendResponse(res, {
+//       success: true,
+//       statusCode: httpStatus.OK,
+//       message: "User Logged in Successfully",
+//       data: {
+//         accessToken: userTokens.accessToken,
+//         refreshToken: userTokens.refreshToken,
+//         user: rest,
+//       },
+//     });
+//     } )(req, res, next)    
+//   }
+// );
 
 
 
@@ -210,15 +211,32 @@ const googleCallbackController = catchAsync(async (req: Request, res: Response, 
   }
 
   const user = req.user as Partial<IUser>;
-  // console.log("user", user) 
+  
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
   }
+  
+  // Create JWT tokens for the user
   const tokenInfo = createUserTokens(user)
 
+  // Set cookies
   setAuthCookie(res, tokenInfo)
   
-  res.redirect(`${envVars.FRONTEND_URL}/${redirectTo}`) 
+  // Update the redirectTo based on verification status
+  // Google-authenticated users are usually verified automatically
+  const finalRedirect = "auth/google/callback";
+  
+  // Include verification status in the URL so frontend can check
+  const queryParams = new URLSearchParams();
+  queryParams.append("verified", user.isVerified ? "true" : "false");
+  
+  // Add any existing state
+  if (redirectTo) {
+    queryParams.append("state", redirectTo);
+  }
+  
+  // Redirect to frontend with proper query parameters
+  res.redirect(`${envVars.FRONTEND_URL}/${finalRedirect}?${queryParams.toString()}`);
 });
   
 
