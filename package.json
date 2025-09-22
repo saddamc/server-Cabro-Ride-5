@@ -4,6 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
+    "dev:local": "node ./dev-local.bat",
+    "dev:local:linux": "bash ./dev-local.sh",
+    "redis:guide": "redis-setup-guide.bat",
     "build": "tsc",
     "lint": "npx eslint ./src",
     "test": "echo \"Error: no test specified\" && exit 1"

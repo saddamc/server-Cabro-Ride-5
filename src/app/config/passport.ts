@@ -32,9 +32,6 @@ passport.use(
         if (isGoogleAuthenticated && !isUserExist.password) {
               return done(null, false, {message: "You have authenticated through Google. So if you want to login with credentials, then at first login with google and set a password for you Gmail and then you can login with email and password"}) // error from !user
         }
-        // if (isGoogleAuthenticated) {
-        //       return done("You have authenticated through Google. So if you want to login with credentials, then at first login with google and set a password for you Gmail and then you can login with email and password") // error from err
-        //   }
 
         const isPasswordMatched = await bcryptjs.compare(
           password as string,
@@ -110,13 +107,7 @@ passport.use(
   )
 );
 
-// frontend localhost:5173 -> localhost:5000/api/v1/auth/google -> passport -> Google OAuth Consent -> gmail login -> successful -> callback url localhost:5000/api/v1/auth/google/callback -> DB store -> token
 
-//Bridge == Google -> user DB store -> token
-// Custom -> email, password, role: USER, name... -> registration -> DB -> User create
-// Google -> req -> google -> successful: Jwt Token: Role, email -> DB - store -> token - api access
-
-// 28-10 (2)
 passport.serializeUser((user: any, done: (err: any, id?: unknown) => void) => {
   done(null, user._id);
 });
@@ -270,4 +261,9 @@ passport.deserializeUser(async (id: string, done: any) => {
 // // ==========================
 
 // export default passport;
+
+
+
+
+
 
