@@ -40,7 +40,7 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
       httpOnly: true, // JS cannot access
       secure: false, // only HTTPS in production
       sameSite: envVars.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 60 * 60 * 1000, // 60 minutes
+     // maxAge: 60 * 60 * 1000, // 60 minutes
     });
   }
 
@@ -50,7 +50,7 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
       httpOnly: true,
       secure: envVars.NODE_ENV === "production",
       sameSite: envVars.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      //maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
 };
