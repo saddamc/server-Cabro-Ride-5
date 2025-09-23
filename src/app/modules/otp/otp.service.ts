@@ -165,7 +165,6 @@ import { sendEmail } from "../../utils/sendEmail";
 import { User } from "../user/user.model";
 
 const OTP_EXPIRATION = 2 * 60; // 2 minutes
-const isProd = process.env.NODE_ENV === "production";
 
 // In-memory fallback store
 const memoryOtpStore = new Map<string, { otp: string; expiresAt: number }>();
