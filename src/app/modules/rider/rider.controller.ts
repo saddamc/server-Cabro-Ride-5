@@ -65,23 +65,47 @@ const getMyRides = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+// ✅ Get Active Ride for Current User
+const getActiveRide = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getActiveRide(req as any);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Active ride retrieved successfully",
+        data: result,
+    });
+});
+
 // ✅ Get all Ride
 const getAllRide = catchAsync(async (req: Request, res: Response) => {
     const result = await RideService.getAllRide();
 
     sendResponse(res, {
         statusCode: 200,
-        success: true, 
+        success: true,
         message: "All Ride Retrieved Successfully",
         data: result.data,
         meta: result.meta
     })
 })
 
-// ✅ 
+// ✅ Get available rides for drivers
+const getAvailableRides = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getAvailableRides();
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Available rides retrieved successfully",
+        data: result,
+    });
+});
+
+// ✅
 const ratingRide = async (req: Request, res: Response) => {
 
-        const riderId = (req.user as any).userId; 
+        const riderId = (req.user as any).userId;
         const { id } = req.params;
         const { rating, feedback } = req.body;
         // console.log("controller ✅:", riderId, id, rating, feedback)
@@ -90,10 +114,10 @@ const ratingRide = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Rating must be between 1 and 5" });
         }
     const result = await RideService.ratingRide(id, riderId, rating, feedback);
-    
+
     sendResponse(res, {
         statusCode: 200,
-        success: true, 
+        success: true,
         message: "Rating Successfully",
         data: result,
     })
@@ -103,7 +127,9 @@ const ratingRide = async (req: Request, res: Response) => {
 export const RideController = {
     requestRide,
     cancelRide,
-    getAllRide, 
+    getAllRide,
     getMyRides,
+    getAvailableRides,
+    getActiveRide,
     ratingRide,
 };

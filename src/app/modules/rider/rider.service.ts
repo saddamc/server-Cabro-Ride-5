@@ -197,6 +197,41 @@ const getAllRide = async () => {
     }
 }
 
+// ✅ Get Active Ride for Current User
+const getActiveRide = async (req: AuthRequest) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+        return null;
+    }
+
+    const activeRide = await Ride.findOne({
+        $or: [
+            { rider: userId },
+            { driver: userId }
+        ],
+        status: { $in: ['requested', 'accepted', 'picked_up', 'in_transit'] }
+    })
+    .populate('rider', 'name phone profilePicture')
+    .populate({
+        path: 'driver',
+        populate: { path: 'user', select: 'name phone profilePicture' }
+    });
+
+    return activeRide;
+};
+
+// ✅ Get available rides for drivers
+const getAvailableRides = async () => {
+    const availableRides = await Ride.find({
+        status: 'requested',
+        driver: null
+    })
+    .populate('rider', 'name phone profilePicture')
+    .sort({ createdAt: -1 });
+
+    return availableRides;
+};
+
 // ✅ Rating Ride
 const ratingRide = async (id: string, riderId: string, rating: number, feedback?: string) => {
 
@@ -233,5 +268,7 @@ export const RideService = {
     cancelRide,
     getAllRide,
     getMyRides,
+    getActiveRide,
+    getAvailableRides,
     ratingRide,
 };
