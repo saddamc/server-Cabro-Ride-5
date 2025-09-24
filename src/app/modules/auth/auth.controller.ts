@@ -36,7 +36,6 @@ const credentialsLogin = catchAsync(
 
     setAuthCookie(res, userTokens);
 
-    // Determine where to redirect based on verification status
     const redirectTo = !user.isVerified ? "/verify" : "/";
 
     sendResponse(res, {
@@ -211,32 +210,15 @@ const googleCallbackController = catchAsync(async (req: Request, res: Response, 
   }
 
   const user = req.user as Partial<IUser>;
-  
+  // console.log("user", user) 
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
   }
-  
-  // Create JWT tokens for the user
   const tokenInfo = createUserTokens(user)
 
-  // Set cookies
   setAuthCookie(res, tokenInfo)
   
-  // Update the redirectTo based on verification status
-  // Google-authenticated users are usually verified automatically
-  const finalRedirect = "auth/google/callback";
-  
-  // Include verification status in the URL so frontend can check
-  const queryParams = new URLSearchParams();
-  queryParams.append("verified", user.isVerified ? "true" : "false");
-  
-  // Add any existing state
-  if (redirectTo) {
-    queryParams.append("state", redirectTo);
-  }
-  
-  // Redirect to frontend with proper query parameters
-  res.redirect(`${envVars.FRONTEND_URL}/${finalRedirect}?${queryParams.toString()}`);
+  res.redirect(`${envVars.FRONTEND_URL}/${redirectTo}`) 
 });
   
 
