@@ -7,6 +7,7 @@ import { OtpRoutes } from "../modules/otp/otp.route";
 import { PaymentRoutes } from "../modules/payment/payment.route";
 import { riderRoutes } from "../modules/rider/rider.route";
 import { userRoutes } from "../modules/user/user.route";
+import { walletRoutes } from "../modules/wallet/wallet.route";
 
 export const router = Router();
 
@@ -42,6 +43,10 @@ const modelRoutes = [
   {
     path: "/location",
     route: locationRoutes,
+  },
+  {
+    path: "/wallet",
+    route: walletRoutes,
   }
 ];
 
