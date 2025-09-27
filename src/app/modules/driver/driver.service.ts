@@ -15,6 +15,16 @@ import { IDriver } from './driver.interface';
 import { Driver } from "./driver.model";
 
 
+// ✅ Get Driver Details
+const getDriverDetails = async (id: string) => {
+    const driver = await Driver.findOne({ user: id }).populate("user");
+    // console.log("service ✅:", driver);
+    if (!driver) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !");
+    }
+    return driver;
+};
+
 // ✅ Approved Driver status by Admin
 const approvedDriver = async (id: string) => {
 
@@ -621,6 +631,7 @@ const findNearbyDrivers = async (lng: number, lat: number, radiusKm = 5) => {
 
 
 export const DriverService = {
+    getDriverDetails,
     setOnlineOffline,
     approvedDriver,
     acceptRide,

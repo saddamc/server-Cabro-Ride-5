@@ -200,6 +200,23 @@ const forgotPassword = catchAsync(
   }
 );
 
+// ✅ resetPassword
+const resetPassword = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+
+    const { userId, token, newPassword } = req.body;
+
+    await AuthServices.resetPassword(userId, token, newPassword);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Password Reset Successfully",
+      data: null,
+    });
+  }
+);
+
 
 // ✅ googleCallbackController
 const googleCallbackController = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -230,5 +247,6 @@ export const AuthControllers = {
   changePassword,
   setPassword,
   forgotPassword,
+  resetPassword,
   googleCallbackController,
 };

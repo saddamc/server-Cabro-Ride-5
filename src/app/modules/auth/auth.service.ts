@@ -96,6 +96,43 @@ const forgotPassword = async (email: string) => {
 
 
 
+// ✅ resetPassword
+const resetPassword = async (userId: string, token: string, newPassword: string) => {
+  // Verify the token
+  const decoded = jwt.verify(token, envVars.JWT_ACCESS_SECRET) as JwtPayload;
+
+  if (!decoded || decoded.userId !== userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired reset token");
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (!user.isVerified) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Please verify your email first");
+  }
+
+  if (user.isActive === IsActive.BLOCKED || user.isActive === IsActive.INACTIVE) {
+    throw new AppError(httpStatus.UNAUTHORIZED, `User is ${user.isActive}`);
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User is deleted");
+  }
+
+  // Hash the new password
+  const hashedPassword = await bcryptjs.hash(
+    newPassword,
+    Number(envVars.BCRYPT_SALT_ROUND)
+  );
+
+  user.password = hashedPassword;
+  await user.save();
+};
+
 // ✅ setPassword
 const setPassword = async (userId: string, password: string) => {
   const user = await User.findById(userId);
@@ -123,7 +160,7 @@ const setPassword = async (userId: string, password: string) => {
   }
 
   const auths: IAuthProvider[] = [...user.auths, credentialProvider];
-  
+
   user.password = hashedPassword;
   user.auths = auths;
   await user.save();
@@ -136,5 +173,6 @@ const setPassword = async (userId: string, password: string) => {
     getNewAccessToken,
     changePassword,
     forgotPassword,
+    resetPassword,
     setPassword,
   };

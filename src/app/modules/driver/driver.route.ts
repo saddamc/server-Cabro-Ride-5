@@ -7,6 +7,8 @@ import { DriverController } from "./driver.controller";
 const router = Router();
 
 
+router.get("/me", checkAuth(...Object.values(Role)), DriverController.getDriverDetails)
+
 router.post("/apply", checkAuth(...Object.values(Role)), DriverController.applyDriver)
 
 router.post("/available", checkAuth(...Object.values(Role)), DriverController.setOnlineOffline)
@@ -22,6 +24,8 @@ router.get("/earnings", checkAuth(...Object.values(Role)), DriverController.driv
 router.get("/nearby", checkAuth(...Object.values(Role)), DriverController.findNearbyDrivers)
 
 router.patch("/update-me", checkAuth(...Object.values(Role)), DriverController.updateDriverDoc)
+
+
 
 // Rating
 router.patch("/rating/:id", checkAuth(...Object.values(Role)), DriverController.ratingRide)

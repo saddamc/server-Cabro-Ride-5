@@ -9,6 +9,19 @@ import { sendResponse } from '../../utils/sendResponse';
 import { IDriver } from './driver.interface';
 import { DriverService } from './driver.service';
 
+// ✅ Get Driver Details  
+const getDriverDetails = catchAsync(async (req: Request, res: Response) => {
+  const driverId = req.user as JwtPayload;
+  // console.log("Decoded User:", driverId);
+    const result = await DriverService.getDriverDetails(driverId.userId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Driver details retrieved successfully",
+        data: result,
+    });
+});
 
 // ✅ Approval Driver status
 const approvedDriver = catchAsync(async (req: Request, res: Response) => {
@@ -215,6 +228,7 @@ const findNearbyDrivers = async (req: Request, res: Response) => {
 
 
 export const DriverController = {
+  getDriverDetails,
   setOnlineOffline,
   approvedDriver,
   applyDriver,

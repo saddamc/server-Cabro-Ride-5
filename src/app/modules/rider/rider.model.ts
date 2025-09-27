@@ -76,8 +76,8 @@ const rideSchema = new Schema<IRide>(
 
 // Methods
 rideSchema.methods.calculateFare = function (): number {
-  const baseFare = 50; // Flat booking fee
-  const perKmRate = 20; // Fare per km
+  const baseFare = 150; // Flat booking fee
+  const perKmRate = 50; // Fare per km
   const perMinuteRate = 2; // Fare per minute
 
   // 🔹 Calculate distance between pickup and destination
