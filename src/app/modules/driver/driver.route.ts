@@ -31,9 +31,9 @@ router.patch("/update-me", checkAuth(...Object.values(Role)), DriverController.u
 router.patch("/rating/:id", checkAuth(...Object.values(Role)), DriverController.ratingRide)
 
 // ADMIN
-router.post("approved-driver/:id/", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
+router.patch("approved-driver/:id/", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
 
-router.post("/suspend/:id",checkAuth(Role.admin, Role.super_admin), DriverController.suspendDriver)
+router.patch("/suspend/:id",checkAuth(Role.admin, Role.super_admin), DriverController.suspendDriver)
 
 
 
