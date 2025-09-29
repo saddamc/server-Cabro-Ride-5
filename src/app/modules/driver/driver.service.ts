@@ -524,7 +524,7 @@ const ratingRide = async (id: string, riderId: string, rating: number, feedback?
     return ride;
 };
 
-// ✅ Earning History 
+// ✅ Earning History
 const driverEarnings = async (driverUserId: string) => {
 
     const driverId = await Driver.findOne({user: driverUserId})
@@ -536,9 +536,36 @@ const driverEarnings = async (driverUserId: string) => {
     // Total earnings
     const totalEarnings = payments.reduce((acc, p) => acc + p.amount, 0);
 
+    // Today's earnings and completed rides
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayPayments = payments.filter(p => p.createdAt && p.createdAt >= today && p.createdAt < tomorrow);
+    const todayEarnings = todayPayments.reduce((acc, p) => acc + p.amount, 0);
+    const completedToday = todayPayments.length;
+
+    // Calculate average rating from completed rides
+    const completedRides = await Ride.find({
+        driver: driverId,
+        status: "completed"
+    }).select('rating.riderRating');
+
+    const ratings = completedRides
+        .map(ride => ride.rating?.riderRating)
+        .filter(rating => rating != null);
+
+    const averageRating = ratings.length > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+        : 0;
+
     return {
         totalEarnings,
         totalTrips: payments.length,
+        todayEarnings,
+        completedToday,
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
         history: payments.map((p) => ({
         amount: p.amount,
         createdAt: p.createdAt,
