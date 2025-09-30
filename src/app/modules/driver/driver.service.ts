@@ -201,6 +201,9 @@ const acceptRide = async (id: string, driverId: string) => {
             throw new AppError(httpStatus.NOT_FOUND, "Rider cannot request for Ride");
         }
 
+        // Generate PIN for rider verification
+        const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
         // 🔹 Update Ride with driverId + approved status
         const ride = await Ride.findByIdAndUpdate(
             id,
@@ -208,6 +211,7 @@ const acceptRide = async (id: string, driverId: string) => {
                 $set: {
                 driver: driver.id,
                 status: "accepted",
+                pin: pin,
                 "timestamps.accepted": new Date(),
                 },
             },
@@ -270,11 +274,11 @@ const rejectRide = async (id: string, driverId: string) => {
             throw new AppError(httpStatus.BAD_REQUEST, "Completed Ride does't possible cancelled!");
         }
 
-        if (rider.status !== "accepted" && rider.status !== "requested") {
+        if (rider.status !== "accepted" && rider.status !== "requested" && rider.status !== "picked_up") {
             throw new AppError(httpStatus.BAD_REQUEST, "Ride something wrong");
         } 
 
-        if (['completed', 'picked_up', 'in_transit', 'cancelled'].includes(rider.status)) {
+        if (['completed', 'in_transit', 'cancelled'].includes(rider.status)) {
             throw new AppError(httpStatus.BAD_REQUEST, 'Ride already cancelled');
         }
 
@@ -375,12 +379,12 @@ const updateRideStatus = async (id: string, driver: string,) => {
         );
         }
 
-        // Prevent cancellation after pickup
-        if (ride.status === "picked_up" || ride.status === "in_transit") {
+        // Prevent cancellation during transit
+        if (ride.status === "in_transit") {
         if (nextStatus === "cancelled") {
             throw new AppError(
             httpStatus.BAD_REQUEST,
-            "Ride cannot be cancelled after pickup"
+            "Ride cannot be cancelled during transit"
             );
         }
         }
@@ -652,6 +656,38 @@ const findNearbyDrivers = async (lng: number, lat: number, radiusKm = 5) => {
     return drivers;
 };
 
+// ✅ Verify PIN and start ride
+const verifyPin = async (id: string, pin: string, driverId: string) => {
+    const ride = await Ride.findById(id);
+    if (!ride) {
+        throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+    }
+
+    const driver = await Driver.findOne({ user: driverId });
+    if (!driver) {
+        throw new AppError(httpStatus.NOT_FOUND, "Driver not found");
+    }
+
+    if (ride.driver?.toString() !== driver._id.toString()) {
+        throw new AppError(httpStatus.FORBIDDEN, "This is not your ride");
+    }
+
+    if (ride.status !== "picked_up") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Ride is not in picked_up status");
+    }
+
+    if (ride.pin !== pin) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid PIN");
+    }
+
+    // Update to in_transit
+    ride.status = "in_transit";
+    ride.timestamps.inTransit = new Date();
+    await ride.save();
+
+    return ride;
+};
+
 
 
 
@@ -666,6 +702,7 @@ export const DriverService = {
     rejectRide,
     suspendDriver,
     updateRideStatus,
+    verifyPin,
     ratingRide,
     driverEarnings,
     findNearbyDrivers,

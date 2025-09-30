@@ -18,6 +18,7 @@ router.post("/accept-ride/:id", checkAuth(...Object.values(Role)), DriverControl
 router.patch("/reject-ride/:id", checkAuth(...Object.values(Role)), DriverController.rejectRide)
 
 router.patch("/status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
+router.post("/verify-pin/:id", checkAuth(...Object.values(Role)), DriverController.verifyPin);
 
 router.get("/earnings", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
 

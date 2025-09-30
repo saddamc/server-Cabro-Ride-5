@@ -137,10 +137,10 @@ const suspendDriver = catchAsync(async (req: Request, res: Response) => {
         });
 })
 
-// ✅ Update Ride Status 
+// ✅ Update Ride Status
 const updateRideStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const driver = req.user as JwtPayload; 
+  const driver = req.user as JwtPayload;
   // const rating = req.body
   // console.log("driverId ✅:", id, driver)
 
@@ -153,6 +153,22 @@ const updateRideStatus = async (req: Request, res: Response) => {
     data: ride,
   });
 }
+
+// ✅ Verify PIN and Start Ride
+const verifyPin = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { pin } = req.body;
+  const driver = req.user as JwtPayload;
+
+  const ride = await DriverService.verifyPin(id, pin, driver.userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'PIN verified, ride started',
+    data: ride,
+  });
+});
 
 // ✅ Rating Ride
 const ratingRide = async (req: Request, res: Response) => {
@@ -236,6 +252,7 @@ export const DriverController = {
   suspendDriver,
   rejectRide,
   updateRideStatus,
+  verifyPin,
   ratingRide,
   driverEarnings,
   findNearbyDrivers,

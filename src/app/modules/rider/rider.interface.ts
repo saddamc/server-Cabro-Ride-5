@@ -25,6 +25,7 @@ export interface IRide extends Document {
   cancellation?: ICancellation;
   rating?: IRideRating;
   paymentStatus?: RIDE_STATUS;
+  pin?: string;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
