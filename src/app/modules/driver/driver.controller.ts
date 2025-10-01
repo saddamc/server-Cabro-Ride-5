@@ -138,13 +138,13 @@ const suspendDriver = catchAsync(async (req: Request, res: Response) => {
 })
 
 // ✅ Update Ride Status
-const updateRideStatus = async (req: Request, res: Response) => {
+const updateRideStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
+  const { status } = req.body;
   const driver = req.user as JwtPayload;
-  // const rating = req.body
-  // console.log("driverId ✅:", id, driver)
+  // console.log("driverId ✅:", id, driver, status)
 
-  const ride = await DriverService.updateRideStatus(id, driver.userId);
+  const ride = await DriverService.updateRideStatus(id, driver.userId, status);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -152,7 +152,7 @@ const updateRideStatus = async (req: Request, res: Response) => {
     message: `Ride status moved to ${ride.status}`,
     data: ride,
   });
-}
+})
 
 // ✅ Verify PIN and Start Ride
 const verifyPin = catchAsync(async (req: Request, res: Response) => {
@@ -170,10 +170,25 @@ const verifyPin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ✅ Confirm Payment Received
+const confirmPaymentReceived = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const driver = req.user as JwtPayload;
+
+    const ride = await DriverService.confirmPaymentReceived(id, driver.userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Payment confirmed and ride completed successfully',
+        data: ride,
+    });
+});
+
 // ✅ Rating Ride
 const ratingRide = async (req: Request, res: Response) => {
 
-        const riderId = (req.user as any).userId; 
+        const riderId = (req.user as any).userId;
         const { id } = req.params;
         const { rating, feedback } = req.body;
         // console.log("controller ✅:", riderId, id, rating, feedback)
@@ -182,10 +197,10 @@ const ratingRide = async (req: Request, res: Response) => {
         return res.status(400).json({ message: "Rating must be between 1 and 5" });
         }
     const result = await DriverService.ratingRide(id, riderId, rating, feedback);
-    
+
     sendResponse(res, {
         statusCode: 200,
-        success: true, 
+        success: true,
         message: "Rating Successfully",
         data: result,
     })
@@ -257,4 +272,5 @@ export const DriverController = {
   driverEarnings,
   findNearbyDrivers,
   updateDriverDoc,
+  confirmPaymentReceived,
   }

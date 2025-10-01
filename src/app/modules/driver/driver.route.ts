@@ -19,6 +19,7 @@ router.patch("/reject-ride/:id", checkAuth(...Object.values(Role)), DriverContro
 
 router.patch("/status/:id", checkAuth(...Object.values(Role)), DriverController.updateRideStatus);
 router.post("/verify-pin/:id", checkAuth(...Object.values(Role)), DriverController.verifyPin);
+router.patch("/confirm-payment/:id", checkAuth(...Object.values(Role)), DriverController.confirmPaymentReceived);
 
 router.get("/earnings", checkAuth(...Object.values(Role)), DriverController.driverEarnings)
 

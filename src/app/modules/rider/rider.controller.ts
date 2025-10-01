@@ -102,26 +102,42 @@ const getAvailableRides = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-// ✅
+// ✅ Rating Ride
 const ratingRide = async (req: Request, res: Response) => {
 
-        const riderId = (req.user as any).userId;
+        const userId = (req.user as any).userId;
         const { id } = req.params;
         const { rating, feedback } = req.body;
-        // console.log("controller ✅:", riderId, id, rating, feedback)
+        // console.log("controller ✅:", userId, id, rating, feedback)
 
         if (!rating || rating < 1 || rating > 5) {
         return res.status(400).json({ message: "Rating must be between 1 and 5" });
         }
-    const result = await RideService.ratingRide(id, riderId, rating, feedback);
+    const result = await RideService.ratingRide(id, userId, rating, feedback);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Rating Successfully",
+        message: "Rating submitted successfully",
         data: result,
-    })
-}
+    });
+};
+
+// ✅ Complete Payment
+const completePayment = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req.user as any).userId;
+    const { id } = req.params;
+    const { method } = req.body;
+
+    const result = await RideService.completePayment(id, userId, method);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Payment completed successfully",
+        data: result,
+    });
+});
 
 
 export const RideController = {
@@ -132,4 +148,5 @@ export const RideController = {
     getAvailableRides,
     getActiveRide,
     ratingRide,
+    completePayment,
 };

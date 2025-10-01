@@ -23,6 +23,8 @@ const rideSchema = new Schema<IRide>(
         'driver_arrived',
         'picked_up',
         'in_transit',
+        'payment_pending',
+        'payment_completed',
         'completed',
         'cancelled',
         'no_driver_found',
@@ -68,6 +70,11 @@ const rideSchema = new Schema<IRide>(
     paymentStatus: {
         type: String,
         enum: Object.values(RIDE_STATUS),
+    },
+    paymentMethod: { 
+        type: String,
+        enum: ['cash', 'card', 'mobile_banking', 'online'], 
+        default: 'cash'
     },
     pin: { type: String, default: null },
     notes: String,

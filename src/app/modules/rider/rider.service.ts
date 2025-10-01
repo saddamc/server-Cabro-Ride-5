@@ -4,8 +4,10 @@ import httpStatus from 'http-status-codes';
 import AppError from "../../errorHelpers/AppError";
 import { AuthRequest } from '../auth/auth.interface';
 import { Driver } from '../driver/driver.model';
+import { PAYMENT_STATUS } from '../payment/payment.interface';
+import { Payment } from '../payment/payment.model';
 import { User } from '../user/user.model';
-import { IRide } from "./rider.interface";
+import { IRide, RIDE_STATUS } from "./rider.interface";
 import { Ride } from './rider.model';
 
 
@@ -76,6 +78,11 @@ const cancelRide = async (id: string, userId: any, payload: any) => {
     ride.status = payload.status;
     ride.cancellation = payload.cancellation;
 
+    // If the ride had a driver assigned, free the driver
+    if (ride.driver) {
+        await Driver.findByIdAndUpdate(ride.driver, { availability: "online", activeRide: null });
+    }
+
     await ride.save();
     return ride;
 };
@@ -98,6 +105,7 @@ const getMyRides = async (req: AuthRequest) => {
     } catch (error) {
         return { message: "Error fetching user", error };
     }
+
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -204,12 +212,28 @@ const getActiveRide = async (req: AuthRequest) => {
         return null;
     }
 
+    let user;
+    try {
+        user = await User.findById(userId);
+    } catch {
+        return null;
+    }
+
+    let activeStatuses;
+    if (user?.role === "rider") {
+        activeStatuses = ['requested', 'accepted', 'picked_up', 'in_transit', 'payment_pending', 'payment_completed'];
+    } else if (user?.role === "driver") {
+        activeStatuses = ['requested', 'accepted', 'picked_up', 'in_transit', 'payment_pending', 'payment_completed', 'completed'];
+    } else {
+        activeStatuses = ['requested', 'accepted', 'picked_up', 'in_transit', 'payment_pending', 'payment_completed'];
+    }
+
     const activeRide = await Ride.findOne({
         $or: [
             { rider: userId },
             { driver: userId }
         ],
-        status: { $in: ['requested', 'accepted', 'picked_up', 'in_transit'] }
+        status: { $in: activeStatuses }
     })
     .populate('rider', 'name phone profilePicture')
     .populate({
@@ -233,31 +257,107 @@ const getAvailableRides = async () => {
 };
 
 // ✅ Rating Ride
-const ratingRide = async (id: string, riderId: string, rating: number, feedback?: string) => {
+const ratingRide = async (id: string, userId: string, rating: number, feedback?: string) => {
 
     const ride = await Ride.findById(id);
-    // console.log("service ✅", id, riderId, rating, feedback)
+    // console.log("service ✅", id, userId, rating, feedback)
     if (!ride) {
         throw new Error("Ride not found");
-    }
-
-    if (ride.rider.toString() !== riderId.toString()) {
-        throw new Error("You are not authorized to rate this ride");
     }
 
     if (ride.status !== "completed") {
         throw new Error("You can only rate a completed ride");
     }
 
-    ride.rating = {
-        ...ride.rating,
-        riderRating: rating,
-        riderFeedback: feedback,
-    };
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (user.role === "rider") {
+        if (ride.rider.toString() !== userId.toString()) {
+            throw new Error("You are not authorized to rate this ride");
+        }
+        ride.rating = {
+            ...ride.rating,
+            riderRating: rating,
+            riderFeedback: feedback,
+        };
+    } else if (user.role === "driver") {
+        const driver = await Driver.findOne({ user: userId });
+        if (!driver || !ride.driver || ride.driver.toString() !== driver._id.toString()) {
+            throw new Error("You are not authorized to rate this ride");
+        }
+        ride.rating = {
+            ...ride.rating,
+            driverRating: rating,
+            driverFeedback: feedback,
+        };
+    } else {
+        throw new Error("Invalid user role");
+    }
 
     await ride.save();
 
     return ride;
+};
+
+// ✅ Complete Payment
+const completePayment = async (id: string, userId: string, method: string) => {
+    const ride = await Ride.findById(id);
+    if (!ride) {
+        throw new Error("Ride not found");
+    }
+
+    if (ride.status !== "payment_pending") {
+        throw new Error("Payment not required");
+    }
+
+    // Check if user is the rider
+    if (ride.rider.toString() !== userId.toString()) {
+        throw new Error("You are not authorized to complete payment for this ride");
+    }
+
+    // Get driver info to create payment record
+    const driver = await Driver.findById(ride.driver);
+    if (!driver) {
+        throw new Error("Driver not found");
+    }
+
+    // Create a payment record
+    try {
+        // Generate a transaction ID based on payment method
+        let transactionId;
+        if (method === 'cash') {
+            // For cash payments, use a special prefix
+            transactionId = `CASH-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        } else {
+            // For digital payments
+            transactionId = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        }
+        
+        // Create payment record with the appropriate transaction ID
+        const payment = await Payment.create({
+            rider: ride.rider,
+            driver: ride.driver,
+            transactionId: transactionId,
+            amount: ride.fare.totalFare,
+            status: PAYMENT_STATUS.PAID
+        });
+        
+        // Update ride with payment reference and status
+        ride.status = "payment_completed";
+        ride.paymentStatus = RIDE_STATUS.COMPLETE;
+        ride.paymentMethod = method;  // Store payment method
+        ride.payment = payment._id;   // Link to payment record
+        
+        await ride.save();
+
+        return ride;
+    } catch (error) {
+        console.error("Error creating payment record:", error);
+        throw new Error("Failed to process payment");
+    }
 };
 
 
@@ -271,4 +371,5 @@ export const RideService = {
     getActiveRide,
     getAvailableRides,
     ratingRide,
+    completePayment,
 };

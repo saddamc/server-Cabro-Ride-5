@@ -6,7 +6,7 @@ import { IUser } from '../user/user.interface';
 export enum RIDE_STATUS {
     PENDING = 'PENDING',
     CANCEL = 'CANCEL',
-    COMPLETE = 'COMPLETE',
+    COMPLETE = 'complete',
     FAILED = 'FAILED'
 }
 
@@ -25,6 +25,7 @@ export interface IRide extends Document {
   cancellation?: ICancellation;
   rating?: IRideRating;
   paymentStatus?: RIDE_STATUS;
+  paymentMethod?: string;
   pin?: string;
   notes?: string;
   createdAt: Date;
@@ -45,6 +46,8 @@ export type RideStatus =
   // | 'driver_arrived'
   | 'picked_up'
   | 'in_transit'
+  | 'payment_pending'
+  | 'payment_completed'
   | 'completed'
   | 'cancelled'
   | 'no_driver_found'
@@ -111,7 +114,9 @@ export const statusFlow: Record<RideStatus, RideStatus | null> = {
   requested: 'accepted',
   accepted: 'picked_up',
   picked_up: 'in_transit',
-  in_transit: 'completed',
+  in_transit: 'payment_pending',
+  payment_pending: 'payment_completed',
+  payment_completed: 'completed',
   completed: null,
   cancelled: null,
   no_driver_found: null,

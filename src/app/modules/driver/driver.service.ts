@@ -347,7 +347,7 @@ const suspendDriver = async (id: any) => {
 }
 
 // ✅ Update Ride Status
-const updateRideStatus = async (id: string, driver: string,) => {
+const updateRideStatus = async (id: string, driver: string, status?: RideStatus) => {
     const transactionId = getTransactionId();
 
     // const { driverRating, driverFeedback } = rating;
@@ -371,17 +371,26 @@ const updateRideStatus = async (id: string, driver: string,) => {
         throw new AppError(httpStatus.FORBIDDEN, "This is not your ride");
         }
 
-        const nextStatus = statusFlow[ride.status as RideStatus];
-        if (!nextStatus) {
-        throw new AppError(
-            httpStatus.BAD_REQUEST,
-            `Cannot update status from ${ride.status}`
-        );
+        let newStatus: RideStatus;
+
+        if (status) {
+            // If status is provided, use it
+            newStatus = status;
+        } else {
+            // Otherwise, use the next status from flow
+            const nextStatus = statusFlow[ride.status as RideStatus];
+            if (!nextStatus) {
+                throw new AppError(
+                    httpStatus.BAD_REQUEST,
+                    `Cannot update status from ${ride.status}`
+                );
+            }
+            newStatus = nextStatus;
         }
 
         // Prevent cancellation during transit
         if (ride.status === "in_transit") {
-        if (nextStatus === "cancelled") {
+        if (newStatus === "cancelled") {
             throw new AppError(
             httpStatus.BAD_REQUEST,
             "Ride cannot be cancelled during transit"
@@ -389,10 +398,10 @@ const updateRideStatus = async (id: string, driver: string,) => {
         }
         }
 
-        ride.status = nextStatus;
+        ride.status = newStatus;
         const now = new Date();
 
-        switch (nextStatus) {
+        switch (newStatus) {
         case "accepted":
             ride.timestamps.driverArrived = now;
             break;
@@ -432,13 +441,15 @@ const updateRideStatus = async (id: string, driver: string,) => {
             const amount = Math.round(ride.fare.totalFare);
 
             // 1. Create payment
+            const finalTransactionId = ride.paymentMethod === 'cash' ? null : transactionId;
             const payment = await Payment.create(
             [
                 {
                 rider: ride._id,
                 driver: driverDoc._id,
-                status: PAYMENT_STATUS.PAID,  //change when add payment system 
-                transactionId,
+                status: PAYMENT_STATUS.PAID,
+                transactionId: finalTransactionId,
+                method: ride.paymentMethod || 'cash',
                 amount,
                 },
             ],
@@ -524,6 +535,67 @@ const ratingRide = async (id: string, riderId: string, rating: number, feedback?
     };
 
     await ride.save();
+
+    return ride;
+};
+
+// ✅ Confirm Payment Received
+const confirmPaymentReceived = async (id: string, driverId: string) => {
+    const ride = await Ride.findById(id).populate('payment');
+    if (!ride) {
+        throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+    }
+
+    const driver = await Driver.findOne({ user: driverId });
+    if (!driver) {
+        throw new AppError(httpStatus.NOT_FOUND, "Driver not found");
+    }
+
+    if (ride.driver?.toString() !== driver._id.toString()) {
+        throw new AppError(httpStatus.FORBIDDEN, "This is not your ride");
+    }
+
+    if (ride.status !== "payment_completed") {
+        throw new AppError(httpStatus.BAD_REQUEST, "Payment has not been completed yet");
+    }
+
+    // Ensure payment status is properly set (may be redundant but added for safety)
+    if (!ride.paymentStatus || ride.paymentStatus !== RIDE_STATUS.COMPLETE) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Payment status is not complete");
+    }
+
+    // Check if there's a payment record and update it if needed
+    if (ride.payment) {
+        try {
+            // For cash payments, ensure they are properly recorded
+            if (ride.paymentMethod === 'cash') {
+                // Verify the payment has a transaction ID, if not create one
+                const payment = await Payment.findById(ride.payment);
+                if (payment && !payment.transactionId) {
+                    payment.transactionId = `CASH-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                    await payment.save();
+                }
+            }
+            
+            await Payment.findByIdAndUpdate(ride.payment, {
+                status: PAYMENT_STATUS.PAID
+            });
+        } catch (err) {
+            // Log but don't fail the process if payment record update fails
+            console.error("Error updating payment record:", err);
+        }
+    }
+
+    // Update to completed
+    ride.status = "completed";
+    ride.timestamps.completed = new Date();
+
+    // Set driver availability back to online
+    driver.availability = "online";
+    driver.activeRide = null;
+
+    await ride.save();
+    await driver.save();
 
     return ride;
 };
@@ -707,5 +779,6 @@ export const DriverService = {
     driverEarnings,
     findNearbyDrivers,
     updateDriverDoc,
+    confirmPaymentReceived,
 
 };

@@ -24,6 +24,9 @@ router.get("/available", checkAuth(Role.driver), RideController.getAvailableRide
 // Rating
 router.patch("/rating/:id", checkAuth(Role.rider, Role.driver), RideController.ratingRide)
 
+// Complete payment
+router.patch("/:id/complete-payment", checkAuth(Role.rider, Role.driver), RideController.completePayment)
+
 // ADMIN
 router.get("/", checkAuth(Role.admin, Role.super_admin), RideController.getAllRide)
 
