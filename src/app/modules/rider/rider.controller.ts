@@ -140,6 +140,21 @@ const completePayment = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+// ✅ Get Ride by ID
+const getRideById = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req.user as any).userId;
+    const { id } = req.params;
+
+    const result = await RideService.getRideById(id, userId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Ride retrieved successfully",
+        data: result,
+    });
+});
+
 export const RideController = {
     requestRide,
     cancelRide,
@@ -147,6 +162,7 @@ export const RideController = {
     getMyRides,
     getAvailableRides,
     getActiveRide,
+    getRideById,
     ratingRide,
     completePayment,
 };

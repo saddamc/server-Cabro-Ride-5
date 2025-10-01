@@ -4,6 +4,12 @@ import { model, Schema } from 'mongoose';
 import { IDocuments, IDriver, IEarnings, ILocation, IRating, IVehicleType } from './driver.interface';
 
 const VehicleInfoSchema = new Schema<IVehicleType>({
+  category: {
+    type: String,
+    enum: ['CAR', 'BIKE'],
+    required: true,
+    uppercase: true
+  },
   make: { type: String, uppercase: true },
   model: { type: String, required: true },
   year: { type: Number, required: true },

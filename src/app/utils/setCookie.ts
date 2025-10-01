@@ -32,7 +32,6 @@ export interface AuthTokens {
 }
 
 export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
-  console.log("Setting auth cookies✅:", tokenInfo); // Debug log
   // Access Token Cookie (short-lived)
   if (tokenInfo.accessToken) {
     res.cookie("accessToken", tokenInfo.accessToken, {

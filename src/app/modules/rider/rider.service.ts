@@ -93,24 +93,24 @@ const getMyRides = async (req: AuthRequest) => {
     const userId = req.user?.userId;
     // console.log("my",userId)
     if (!userId) {
-        return { message: "User ID is required" };
+        throw new AppError(httpStatus.BAD_REQUEST, "User ID is required");
     }
 
     let user;
     try {
         user = await User.findById(userId);
         if (!user) {
-        return { message: "User not found" };
+            throw new AppError(httpStatus.NOT_FOUND, "User not found");
         }
-    } catch (error) {
-        return { message: "Error fetching user", error };
+    } catch {
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Error fetching user");
     }
 
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     if (page < 1 || limit < 1) {
-        return { message: "Invalid page or limit" };
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid page or limit");
     }
     const skip = (page - 1) * limit;
 
@@ -121,23 +121,23 @@ const getMyRides = async (req: AuthRequest) => {
     } else if (user.role === "driver") {
         let driver;
         try {
-        driver = await Driver.findOne({ user: user._id });
-        if (!driver) {
-            return {
-            total: 0,
-            page,
-            limit,
-            rides: [],
-            grouped: { completed: [], requested: [], cancelled: [] },
-            message: "You have no history",
-            };
-        }
-        query.driver = driver._id;
-        } catch (error) {
-        return { message: "Error fetching driver", error };
+            driver = await Driver.findOne({ user: user._id });
+            if (!driver) {
+                // Return empty result instead of error for drivers without history
+                return {
+                    total: 0,
+                    page,
+                    limit,
+                    rides: [],
+                    grouped: { completed: [], requested: [], cancelled: [] },
+                };
+            }
+            query.driver = driver._id;
+        } catch {
+            throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Error fetching driver");
         }
     } else {
-        return { message: "Invalid user role" };
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid user role");
     }
 
     let rides;
@@ -155,18 +155,7 @@ const getMyRides = async (req: AuthRequest) => {
 
         total = await Ride.countDocuments(query);
     } catch (error) {
-        return { message: "Error fetching rides", error };
-    }
-
-    if (total === 0) {
-        return {
-        total,
-        page,
-        limit,
-        rides: [],
-        grouped: { completed: [], requested: [], cancelled: [] },
-        message: "You have no history",
-        };
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Error fetching rides");
     }
 
     // Group rides by status (only the paginated ones)
@@ -354,14 +343,38 @@ const completePayment = async (id: string, userId: string, method: string) => {
         await ride.save();
 
         return ride;
-    } catch (error) {
-        console.error("Error creating payment record:", error);
+    } catch {
         throw new Error("Failed to process payment");
     }
 };
 
 
 
+
+// ✅ Get Ride by ID
+const getRideById = async (id: string, userId: string) => {
+    const ride = await Ride.findById(id)
+        .populate("rider", "name phone profilePicture")
+        .populate({
+            path: "driver",
+            populate: { path: "user", select: "name phone profilePicture" },
+        });
+
+    if (!ride) {
+        throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+    }
+
+    // Check if user has permission to view this ride
+    if (ride.rider.toString() !== userId) {
+        // Check if user is the driver
+        const driver = await Driver.findOne({ user: userId });
+        if (!driver || !ride.driver || ride.driver.toString() !== driver._id.toString()) {
+            throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to view this ride");
+        }
+    }
+
+    return ride;
+};
 
 export const RideService = {
     requestRide,
@@ -370,6 +383,7 @@ export const RideService = {
     getMyRides,
     getActiveRide,
     getAvailableRides,
+    getRideById,
     ratingRide,
     completePayment,
 };

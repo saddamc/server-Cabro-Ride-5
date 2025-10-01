@@ -16,10 +16,12 @@ router.patch("/:id/cancel", checkAuth(Role.rider, Role.driver), RideController.c
 // Get active ride for current user
 router.get("/active", checkAuth(Role.rider, Role.driver), RideController.getActiveRide);
 
-router.get("/me", checkAuth(Role.rider, Role.driver), RideController.getMyRides)
-
 // Get available rides for drivers
-router.get("/available", checkAuth(Role.driver), RideController.getAvailableRides)
+router.get("/available", checkAuth(Role.driver), RideController.getAvailableRides);
+
+router.get("/me", checkAuth(Role.rider, Role.driver), RideController.getMyRides);
+
+router.get("/:id", checkAuth(Role.rider, Role.driver), RideController.getRideById);
 
 // Rating
 router.patch("/rating/:id", checkAuth(Role.rider, Role.driver), RideController.ratingRide)

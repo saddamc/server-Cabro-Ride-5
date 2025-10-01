@@ -580,9 +580,8 @@ const confirmPaymentReceived = async (id: string, driverId: string) => {
             await Payment.findByIdAndUpdate(ride.payment, {
                 status: PAYMENT_STATUS.PAID
             });
-        } catch (err) {
+        } catch {
             // Log but don't fail the process if payment record update fails
-            console.error("Error updating payment record:", err);
         }
     }
 
@@ -622,7 +621,7 @@ const driverEarnings = async (driverUserId: string) => {
     const todayEarnings = todayPayments.reduce((acc, p) => acc + p.amount, 0);
     const completedToday = todayPayments.length;
 
-    // Calculate average rating from completed rides
+    // Calculate average rating from completed rides - only if ALL rides have ratings
     const completedRides = await Ride.find({
         driver: driverId,
         status: "completed"
@@ -632,16 +631,17 @@ const driverEarnings = async (driverUserId: string) => {
         .map(ride => ride.rating?.riderRating)
         .filter(rating => rating != null);
 
-    const averageRating = ratings.length > 0
+    // Only calculate average if ALL completed rides have ratings
+    const averageRating = (ratings.length === completedRides.length && completedRides.length > 0)
         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
-        : 0;
+        : null; // Don't show average if any ride is missing a rating
 
     return {
         totalEarnings,
         totalTrips: payments.length,
         todayEarnings,
         completedToday,
-        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+        averageRating: averageRating !== null ? Math.round(averageRating * 10) / 10 : null, // Round to 1 decimal place or null if not available
         history: payments.map((p) => ({
         amount: p.amount,
         createdAt: p.createdAt,

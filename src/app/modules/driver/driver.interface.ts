@@ -3,6 +3,7 @@ import { Document, Types } from "mongoose";
 import { IUser } from "../user/user.interface";
 
 export interface IVehicleType {
+    category: 'CAR' | 'BIKE';
     make: string;
     model: string;
     year: number;
