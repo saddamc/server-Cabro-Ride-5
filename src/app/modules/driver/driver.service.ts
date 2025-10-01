@@ -70,10 +70,11 @@ const setOnlineOffline = async (id: any) => {
     if (!driver?._id) {
         throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !")
     }
-
+console.log(driver.status === "pending" )
     if (driver.status === "pending" ) {
         throw new AppError(httpStatus.BAD_REQUEST, "Your status: pending, Waiting for Approval.")
     }
+
     if (driver.status === "rejected" || driver.status === "suspended") {
         throw new AppError(httpStatus.BAD_REQUEST, "Update your documents or contact customer support. ⚠️")
     }
@@ -621,7 +622,7 @@ const driverEarnings = async (driverUserId: string) => {
     const todayEarnings = todayPayments.reduce((acc, p) => acc + p.amount, 0);
     const completedToday = todayPayments.length;
 
-    // Calculate average rating from completed rides - only if ALL rides have ratings
+    // Calculate average rating from completed rides that have ratings
     const completedRides = await Ride.find({
         driver: driverId,
         status: "completed"
@@ -629,12 +630,12 @@ const driverEarnings = async (driverUserId: string) => {
 
     const ratings = completedRides
         .map(ride => ride.rating?.riderRating)
-        .filter(rating => rating != null);
+        .filter((rating): rating is number => rating != null && rating > 0);
 
-    // Only calculate average if ALL completed rides have ratings
-    const averageRating = (ratings.length === completedRides.length && completedRides.length > 0)
+    // Calculate average from available ratings (don't count rides without ratings)
+    const averageRating = ratings.length > 0
         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
-        : null; // Don't show average if any ride is missing a rating
+        : null;
 
     return {
         totalEarnings,
@@ -642,6 +643,8 @@ const driverEarnings = async (driverUserId: string) => {
         todayEarnings,
         completedToday,
         averageRating: averageRating !== null ? Math.round(averageRating * 10) / 10 : null, // Round to 1 decimal place or null if not available
+        totalCompletedRides: completedRides.length, // Total completed rides for display
+        ratedRides: ratings.length, // Number of rides that have ratings
         history: payments.map((p) => ({
         amount: p.amount,
         createdAt: p.createdAt,
