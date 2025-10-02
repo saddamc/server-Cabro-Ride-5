@@ -79,7 +79,9 @@ const getActiveRide = catchAsync(async (req: Request, res: Response) => {
 
 // ✅ Get all Ride
 const getAllRide = catchAsync(async (req: Request, res: Response) => {
-    const result = await RideService.getAllRide();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 12;
+    const result = await RideService.getAllRide(page, limit);
 
     sendResponse(res, {
         statusCode: 200,
@@ -87,6 +89,30 @@ const getAllRide = catchAsync(async (req: Request, res: Response) => {
         message: "All Ride Retrieved Successfully",
         data: result.data,
         meta: result.meta
+    })
+})
+
+// ✅ Get all bookings for admin
+const getAllBookingsForAdmin = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getAllBookingsForAdmin();
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "All Bookings Retrieved Successfully",
+        data: result
+    })
+})
+
+// ✅ Get earnings data for admin
+const getEarningsData = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getEarningsData();
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Earnings Data Retrieved Successfully",
+        data: result
     })
 })
 
@@ -159,6 +185,8 @@ export const RideController = {
     requestRide,
     cancelRide,
     getAllRide,
+    getAllBookingsForAdmin,
+    getEarningsData,
     getMyRides,
     getAvailableRides,
     getActiveRide,

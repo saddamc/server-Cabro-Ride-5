@@ -31,6 +31,8 @@ router.patch("/:id/complete-payment", checkAuth(Role.rider, Role.driver), RideCo
 
 // ADMIN
 router.get("/", checkAuth(Role.admin, Role.super_admin), RideController.getAllRide)
+router.get("/all", checkAuth(Role.admin, Role.super_admin), RideController.getAllBookingsForAdmin)
+router.get("/earnings", checkAuth(Role.admin, Role.super_admin), RideController.getEarningsData)
 
 
 

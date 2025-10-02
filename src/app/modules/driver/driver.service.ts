@@ -18,11 +18,33 @@ import { Driver } from "./driver.model";
 // ✅ Get Driver Details
 const getDriverDetails = async (id: string) => {
     const driver = await Driver.findOne({ user: id }).populate("user");
-    // console.log("service ✅:", driver);
     if (!driver) {
         throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !");
     }
-    return driver;
+
+    // Calculate average rating from completed rides that have ratings
+    const completedRides = await Ride.find({
+        driver: driver._id,
+        status: "completed"
+    }).select('rating.riderRating');
+
+    const ratings = completedRides
+        .map(ride => ride.rating?.riderRating)
+        .filter((rating): rating is number => rating != null && rating > 0);
+
+    // Calculate average from available ratings (don't count rides without ratings)
+    const averageRating = ratings.length > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+        : 0;
+
+    // Return driver with calculated rating
+    return {
+        ...driver.toObject(),
+        rating: {
+            average: averageRating,
+            totalRatings: ratings.length
+        }
+    };
 };
 
 // ✅ Approved Driver status by Admin
