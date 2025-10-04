@@ -77,7 +77,28 @@ const updateUser = async (userId: string, payload: Partial<IUser>,
   
 // ✅ getAllUsers
 const getAllUsers = async () => {
-  const users = await User.find({});
+  const users = await User.aggregate([
+    {
+      $lookup: {
+        from: 'rides',
+        let: { userId: '$_id' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$rider', '$$userId'] }, status: 'completed' } }
+        ],
+        as: 'rides'
+      }
+    },
+    {
+      $addFields: {
+        totalRides: { $size: '$rides' }
+      }
+    },
+    {
+      $project: {
+        rides: 0
+      }
+    }
+  ]);
 
   const totalUsers = await User.countDocuments();
 

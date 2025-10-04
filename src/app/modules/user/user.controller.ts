@@ -6,6 +6,8 @@ import { JwtPayload } from "jsonwebtoken";
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
+import { IsActive } from "./user.interface";
+import { User } from "./user.model";
 import { UserServices } from "./user.service";
 
 
@@ -91,7 +93,6 @@ const getSingleUser = catchAsync(async (req: Request, res: Response, next: NextF
         data: result.data
     })
 })
-
 // ✅ Active / Blocked user
 const setBlocked = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -107,7 +108,59 @@ const setBlocked = catchAsync(async (req: Request, res: Response) => {
         });
 })
 
+// ✅ Activate user
+const activateUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
 
+    const user = await User.findById(id)
+    if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User Not Found !")
+    }
+
+    if (user.isDeleted) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User is Deleted ⚠️");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { isActive: IsActive.ACTIVE },
+        { new: true }
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User activated successfully",
+        data: updatedUser,
+    });
+})
+
+// ✅ Suspend user
+const suspendUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+    const user = await User.findById(id)
+    if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User Not Found !")
+    }
+
+    if (user.isDeleted) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User is Deleted ⚠️");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        { isActive: IsActive.INACTIVE },
+        { new: true }
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User suspended successfully",
+        data: updatedUser,
+    });
+})
 
 export const UserControllers = {
   createUser,
@@ -116,5 +169,7 @@ export const UserControllers = {
   getMe,
   getSingleUser,
   setBlocked,
+  activateUser,
+  suspendUser,
 };
 

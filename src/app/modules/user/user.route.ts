@@ -23,7 +23,11 @@ router.patch("/update/:id", validateRequest(updateUserZodSchema), checkAuth(...O
 // ADMIN
 router.get("/", checkAuth(Role.admin, Role.super_admin), UserControllers.getAllUsers);
 
-router.post("/block/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.setBlocked)
+router.patch("/block/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.setBlocked)
+
+router.patch("/activate/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.activateUser)
+
+router.patch("/suspend/:id", checkAuth(Role.admin, Role.super_admin), UserControllers.suspendUser)
 
 
 export const userRoutes = router;

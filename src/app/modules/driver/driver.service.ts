@@ -535,27 +535,46 @@ const updateRideStatus = async (id: string, driver: string, status?: RideStatus)
 };
 
 // ✅ Rating Ride
-const ratingRide = async (id: string, riderId: string, rating: number, feedback?: string) => {
+const ratingRide = async (id: string, userId: string, rating: number, feedback?: string) => {
 
     const ride = await Ride.findById(id);
-    // console.log("service ✅", id, riderId, rating, feedback)
+    // console.log("service ✅", id, userId, rating, feedback)
     if (!ride) {
         throw new Error("Ride not found");
     }
-// console.log("Matching Driver: ✅", ride.rider.toString() !== riderId.toString())
-    if (ride.rider.toString() === riderId.toString()) {
+
+
+    // Check if user is the rider (rating driver) or driver (rating rider)
+    const isRider = ride.rider.toString() === userId.toString();
+
+    // For driver check, we need to find the driver document by user ID
+    let isDriver = false;
+    if (ride.driver) {
+        const driverDoc = await Driver.findOne({ user: userId });
+        if (driverDoc && driverDoc._id.toString() === ride.driver.toString()) {
+            isDriver = true;
+        }
+    }
+
+    if (!isRider && !isDriver) {
         throw new Error("You are not authorized to rate this ride");
     }
 
-    if (ride.status !== "completed") {
-        throw new Error("You can only rate a completed ride");
+    if (isRider) {
+        // Rider rating the driver
+        ride.rating = {
+            ...ride.rating,
+            driverRating: rating,
+            driverFeedback: feedback,
+        };
+    } else if (isDriver) {
+        // Driver rating the rider
+        ride.rating = {
+            ...ride.rating,
+            riderRating: rating,
+            riderFeedback: feedback,
+        };
     }
-
-    ride.rating = {
-        ...ride.rating,
-        driverRating: rating,
-        driverFeedback: feedback,
-    };
 
     await ride.save();
 
