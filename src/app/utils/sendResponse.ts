@@ -16,7 +16,7 @@ export const sendResponse = <T>(res: Response, data: TResponse<T>) => {
     statusCode: data.statusCode,
     success: data.success,
     message: data.message,
-    mata: data.meta,
+    meta: data.meta,
     data: data.data,
   });
 };

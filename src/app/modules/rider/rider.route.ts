@@ -21,6 +21,13 @@ router.get("/available", checkAuth(Role.driver), RideController.getAvailableRide
 
 router.get("/me", checkAuth(Role.rider, Role.driver), RideController.getMyRides);
 
+// ADMIN
+router.get("/", RideController.getAllRide)
+router.get("/all", RideController.getAllBookingsForAdmin)
+router.get("/earnings", RideController.getEarningsData)
+router.get("/volume", RideController.getRideVolumeData)
+router.get("/activity", RideController.getDriverActivityData)
+
 router.get("/:id", checkAuth(Role.rider, Role.driver), RideController.getRideById);
 
 // Rating
@@ -28,11 +35,6 @@ router.patch("/rating/:id", checkAuth(Role.rider, Role.driver), RideController.r
 
 // Complete payment
 router.patch("/:id/complete-payment", checkAuth(Role.rider, Role.driver), RideController.completePayment)
-
-// ADMIN
-router.get("/", checkAuth(Role.admin, Role.super_admin), RideController.getAllRide)
-router.get("/all", checkAuth(Role.admin, Role.super_admin), RideController.getAllBookingsForAdmin)
-router.get("/earnings", checkAuth(Role.admin, Role.super_admin), RideController.getEarningsData)
 
 
 

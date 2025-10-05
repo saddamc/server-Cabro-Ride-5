@@ -467,6 +467,104 @@ const getRideById = async (id: string, userId: string) => {
     return ride;
 };
 
+// ✅ Get ride volume data for dashboard (daily rides over last 30 days)
+const getRideVolumeData = async () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const volumeData = await Ride.aggregate([
+        {
+            $match: {
+                createdAt: { $gte: thirtyDaysAgo }
+            }
+        },
+        {
+            $group: {
+                _id: {
+                    $dateToString: {
+                        format: "%Y-%m-%d",
+                        date: "$createdAt"
+                    }
+                },
+                totalRides: { $sum: 1 },
+                completedRides: {
+                    $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] }
+                },
+                cancelledRides: {
+                    $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
+                }
+            }
+        },
+        {
+            $sort: { "_id": 1 }
+        }
+    ]);
+
+    // Fill in missing dates with 0 values
+    const result = [];
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+
+        const dayData = volumeData.find(d => d._id === dateStr);
+        result.push({
+            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            rides: dayData?.totalRides || 0,
+            completed: dayData?.completedRides || 0,
+            cancelled: dayData?.cancelledRides || 0,
+        });
+    }
+
+    return result;
+};
+
+// ✅ Get driver activity data for dashboard (24h)
+const getDriverActivityData = async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const activityData = await Ride.aggregate([
+        {
+            $match: {
+                createdAt: { $gte: today, $lt: tomorrow }
+            }
+        },
+        {
+            $group: {
+                _id: { $hour: "$createdAt" },
+                activeDrivers: { $addToSet: "$driver" },
+                bookings: { $sum: 1 }
+            }
+        },
+        {
+            $project: {
+                hour: "$_id",
+                activeDrivers: { $size: { $ifNull: ["$activeDrivers", []] } },
+                bookings: 1
+            }
+        },
+        {
+            $sort: { hour: 1 }
+        }
+    ]);
+
+    // Fill in all 24 hours with data
+    const result = [];
+    for (let hour = 0; hour < 24; hour++) {
+        const hourData = activityData.find(d => d.hour === hour);
+        result.push({
+            hour: `${hour.toString().padStart(2, '0')}:00`,
+            activeDrivers: hourData?.activeDrivers || 0,
+            bookings: hourData?.bookings || 0,
+        });
+    }
+
+    return result;
+};
+
 export const RideService = {
     requestRide,
     cancelRide,
@@ -479,4 +577,6 @@ export const RideService = {
     getRideById,
     ratingRide,
     completePayment,
+    getRideVolumeData,
+    getDriverActivityData,
 };

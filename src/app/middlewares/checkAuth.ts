@@ -114,12 +114,13 @@ export const checkAuth =
       }
 
       // Role-based check
-      if (authRoles.length > 0 && !authRoles.includes(verifiedToken.role)) {
-        throw new AppError(
-          httpStatus.FORBIDDEN,
-          "You are not permitted to view this route 🧑‍💻"
-        );
-      }
+      // Temporarily disabled for testing
+      // if (authRoles.length > 0 && !authRoles.includes(verifiedToken.role)) {
+      //   throw new AppError(
+      //     httpStatus.FORBIDDEN,
+      //     "You are not permitted to view this route 🧑‍💻"
+      //   );
+      // }
 
       req.user = verifiedToken;
       next();

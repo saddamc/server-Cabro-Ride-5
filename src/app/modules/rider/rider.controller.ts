@@ -181,6 +181,30 @@ const getRideById = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+// ✅ Get ride volume data
+const getRideVolumeData = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getRideVolumeData();
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Ride volume data retrieved successfully",
+        data: result
+    })
+})
+
+// ✅ Get driver activity data
+const getDriverActivityData = catchAsync(async (req: Request, res: Response) => {
+    const result = await RideService.getDriverActivityData();
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Driver activity data retrieved successfully",
+        data: result
+    })
+})
+
 export const RideController = {
     requestRide,
     cancelRide,
@@ -193,4 +217,6 @@ export const RideController = {
     getRideById,
     ratingRide,
     completePayment,
+    getRideVolumeData,
+    getDriverActivityData,
 };
