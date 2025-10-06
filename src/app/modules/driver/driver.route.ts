@@ -33,10 +33,11 @@ router.patch("/update-me", checkAuth(...Object.values(Role)), DriverController.u
 router.patch("/rating/:id", checkAuth(...Object.values(Role)), DriverController.ratingRide)
 
 // ADMIN
-router.patch("approved-driver/:id/", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
+router.patch("/approved-driver/:id", checkAuth(Role.admin, Role.super_admin), DriverController.approvedDriver)
 
 router.patch("/suspend/:id",checkAuth(Role.admin, Role.super_admin), DriverController.suspendDriver)
 
-
+// Get all drivers (ADMIN only)
+router.get("/", checkAuth(Role.admin, Role.super_admin), DriverController.getAllDrivers)
 
 export const driverRoutes = router;

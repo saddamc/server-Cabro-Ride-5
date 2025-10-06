@@ -125,14 +125,15 @@ const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> =
 // ✅ Suspend Driver
 const suspendDriver = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  // console.log("online id✅:", id)
+  console.log("Suspend/reactivate driver id:", id);
 
-    const result = await DriverService.suspendDriver(id)
+    const result = await DriverService.suspendDriver(id);
+    console.log("Driver status after suspension/reactivation:", result?.status);
 
         sendResponse(res, {
         statusCode: 201,
         success: true,
-        message:` Driver available: 👀 ${result?.status}`,
+        message:` Driver status updated to: ${result?.status}`,
         data: result,
         });
 })
@@ -237,6 +238,18 @@ const updateDriverDoc = async (req: Request, res: Response) => {
   });
 }
 
+// ✅ Get All Drivers
+const getAllDrivers = catchAsync(async (req: Request, res: Response) => {
+  const result = await DriverService.getAllDrivers();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All drivers retrieved successfully",
+    data: result,
+  });
+});
+
 // ✅ Search Driver
 const findNearbyDrivers = async (req: Request, res: Response) => {
   try {
@@ -270,7 +283,8 @@ export const DriverController = {
   verifyPin,
   ratingRide,
   driverEarnings,
+  getAllDrivers,
   findNearbyDrivers,
   updateDriverDoc,
   confirmPaymentReceived,
-  }
+}

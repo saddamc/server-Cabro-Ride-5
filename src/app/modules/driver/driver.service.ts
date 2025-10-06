@@ -358,10 +358,10 @@ const suspendDriver = async (id: any) => {
     }
 
     const newStatus =
-    driver.status === "approved" ? "suspend" : "approved";
+    driver.status === "approved" ? "suspended" : "approved";
 
     const updatedDriver = await Driver.findByIdAndUpdate(
-        driver,
+        id, // Use the actual ID, not the driver object
         { status: newStatus },
         { new: true }
     );
@@ -716,6 +716,29 @@ const updateDriverDoc = async (userId: string, payload: Partial<IDriver>) => {
     return updatedDriver;
 };
 
+// ✅ Get All Drivers (Admin)
+const getAllDrivers = async () => {
+    const drivers = await Driver.find({})
+        .populate('user', 'name email phone')
+        .sort({ createdAt: -1 });
+
+    return drivers.map(driver => ({
+        _id: driver._id,
+        user: driver.user,
+        licenseNumber: driver.licenseNumber,
+        vehicleType: driver.vehicleType,
+        vehicleInfo: driver.vehicleType, // Use vehicleType for vehicle info
+        isOnline: driver.availability === 'online',
+        isApproved: driver.status === 'approved',
+        isSuspended: driver.status === 'suspended',
+        rating: 0, // Default rating
+        totalRides: 0, // Will be calculated from rides
+        status: driver.status || 'pending',
+        createdAt: driver.createdAt,
+        updatedAt: driver.updatedAt
+    }));
+};
+
 // ✅ Search Driver
 const findNearbyDrivers = async (lng: number, lat: number, radiusKm = 5) => {
         const drivers = await Driver.aggregate([
@@ -821,6 +844,7 @@ export const DriverService = {
     verifyPin,
     ratingRide,
     driverEarnings,
+    getAllDrivers,
     findNearbyDrivers,
     updateDriverDoc,
     confirmPaymentReceived,

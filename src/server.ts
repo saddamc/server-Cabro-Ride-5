@@ -130,7 +130,8 @@ import mongoose from "mongoose";
 import app from "./app";
 import { envVars } from "./app/config/env";
 import { connectRedis } from "./app/config/redis.config";
-// import { seedSuperAdmin } from "./app/utils/seedSuperAdmin";
+import { seedSampleData } from "./app/utils/seedSampleData";
+import { seedSuperAdmin } from "./app/utils/seedSuperAdmin";
 
 let server: Server;
 const isProd = process.env.NODE_ENV === "production";
@@ -166,8 +167,9 @@ may fallback to in-memory, which is NOT recommended for prod.
       console.log(`🚀 Server running on port ${envVars.PORT}`);
     });
 
-    // 4. Seed admin if needed
-    // if (isProd) await seedSuperAdmin();
+    // 4. Seed admin and sample data if needed
+    await seedSuperAdmin();
+    await seedSampleData();
 
   } catch (error) {
     console.error("❌ Failed to start server:", error);
