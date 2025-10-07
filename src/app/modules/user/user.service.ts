@@ -3,34 +3,86 @@ import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
+import { Driver } from "../driver/driver.model";
 import { IAuthProvider, IsActive, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 
 // ✅ createUser
 const createUser = async (payload: Partial<IUser>) => {
-  const { email, password, ...rest } = payload; 
+  const { email, password, role, ...rest } = payload;
 
   const isUserExist = await User.findOne({ email });
 
   if (isUserExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist"); 
+    // Use 409 Conflict for already existing resource instead of 400 Bad Request
+    throw new AppError(httpStatus.CONFLICT, `User with email ${email} already exists`);
   }
 
   const hashedPassword = await bcryptjs.hash(password as string, Number(envVars.BCRYPT_SALT_ROUND));
-  // console.log(password, hashedPassword);
 
   const authProvider: IAuthProvider = {
     provider: "credentials",
     providerId: email as string,
   };
 
-  const user = await User.create({
-    email,
-    password: hashedPassword, 
-    auths: [authProvider],
-    ...rest,
-  });
-  return user;
+  const session = await User.startSession();
+  session.startTransaction();
+
+  try {
+    // Create the user
+    const user = await User.create([{
+      email,
+      password: hashedPassword,
+      auths: [authProvider],
+      role,
+      ...rest,
+    }], { session });
+
+    const createdUser = user[0];
+
+    // If the user is registering as a driver, create a basic driver document
+    if (role === Role.driver) {
+      // Convert user ID to string to ensure consistent format
+      const userId = createdUser._id.toString();
+      
+      // Generate a unique random plate number with timestamp to prevent conflicts
+      const timestamp = Date.now().toString().slice(-6);
+      const randomNum = Math.floor(10000 + Math.random() * 90000);
+      const uniquePlateNumber = `TEMP-${timestamp}${randomNum}`;
+      
+      // Create a basic driver document with minimal required fields
+      await Driver.create([{
+        user: userId, // Use string ID to avoid ObjectId conversion issues
+        licenseNumber: `PENDING-${Math.floor(100000 + Math.random() * 900000)}`, // Temporary license number
+        status: 'pending',
+        availability: 'offline',
+        // Include a basic vehicleType with a unique plateNumber
+        vehicleType: {
+          category: 'CAR',
+          make: 'PENDING',
+          model: 'PENDING',
+          year: new Date().getFullYear(),
+          plateNumber: uniquePlateNumber, // Use the unique plate number
+          color: 'PENDING'
+        },
+        // Include a basic location (can be updated later)
+        location: {
+          coordinates: [90.4125, 23.7928], // Default Dhaka coordinates
+          address: "Dhaka, Bangladesh",
+          lastUpdated: new Date()
+        }
+      }], { session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return createdUser;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 // ✅ updateUser

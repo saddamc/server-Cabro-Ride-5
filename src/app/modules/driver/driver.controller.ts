@@ -12,7 +12,6 @@ import { DriverService } from './driver.service';
 // ✅ Get Driver Details  
 const getDriverDetails = catchAsync(async (req: Request, res: Response) => {
   const driverId = req.user as JwtPayload;
-  // console.log("Decoded User:", driverId);
     const result = await DriverService.getDriverDetails(driverId.userId);
 
     sendResponse(res, {
@@ -125,10 +124,8 @@ const rejectRide = catchAsync(async (req: Request, res: Response):Promise<any> =
 // ✅ Suspend Driver
 const suspendDriver = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  console.log("Suspend/reactivate driver id:", id);
 
     const result = await DriverService.suspendDriver(id);
-    console.log("Driver status after suspension/reactivation:", result?.status);
 
         sendResponse(res, {
         statusCode: 201,

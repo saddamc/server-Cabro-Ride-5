@@ -235,7 +235,11 @@ const googleCallbackController = catchAsync(async (req: Request, res: Response, 
 
   setAuthCookie(res, tokenInfo)
   
-  res.redirect(`${envVars.FRONTEND_URL}/${redirectTo}`) 
+  // Include the token in the URL for client-side storage
+  const redirectUrl = `${envVars.FRONTEND_URL}/${redirectTo}?token=${tokenInfo.accessToken}`;
+  console.log("Google auth redirecting to:", redirectUrl);
+  
+  res.redirect(redirectUrl) 
 });
   
 

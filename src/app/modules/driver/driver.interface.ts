@@ -29,6 +29,7 @@ export interface IDriver extends Document {
     earnings: IEarnings;
     rating: IRating;
     documents?: IDocuments;
+    additionalInfo?: IAdditionalInfo;
     activeRide?: Types.ObjectId | null;
     approvedAt?: Date;
     createdAt: Date;
@@ -54,6 +55,11 @@ export interface IDocuments {
     licenseImage?: string;
     vehicleRegistration?: string;
     insurance?: string;
+}
+
+export interface IAdditionalInfo {
+    experience?: string;
+    references?: string;
 }
 
 export interface IDriverStatusUpdate {

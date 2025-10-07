@@ -17,9 +17,34 @@ import { Driver } from "./driver.model";
 
 // ✅ Get Driver Details
 const getDriverDetails = async (id: string) => {
-    const driver = await Driver.findOne({ user: id }).populate("user");
+    // Try to find an existing driver
+    let driver = await Driver.findOne({ user: id }).populate("user");
+    
+    // If no driver exists, check if the user is registered with a driver role
     if (!driver) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !");
+        const user = await User.findById(id);
+        
+        // If user exists and has driver role but no driver document, create one
+        if (user && user.role === Role.driver) {
+            // Create a minimal driver document
+            driver = await Driver.create({
+                user: id, // Use the ID directly to avoid ObjectId mismatches
+                licenseNumber: `PENDING-${Math.floor(100000 + Math.random() * 900000)}`,
+                status: 'pending',
+                availability: 'offline',
+                location: {
+                    coordinates: [90.4125, 23.7928], // Default to Dhaka coordinates
+                    address: "Dhaka, Bangladesh",
+                    lastUpdated: new Date()
+                }
+            });
+            
+            // Populate the user field after creation
+            await driver.populate("user");
+        } else {
+            // If user doesn't exist or doesn't have driver role, throw error
+            throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found! You need to apply first to become a driver.");
+        }
     }
 
     // Calculate average rating from completed rides that have ratings
@@ -92,7 +117,7 @@ const setOnlineOffline = async (id: any) => {
     if (!driver?._id) {
         throw new AppError(httpStatus.BAD_REQUEST, "Driver Not Found !")
     }
-console.log(driver.status === "pending" )
+    
     if (driver.status === "pending" ) {
         throw new AppError(httpStatus.BAD_REQUEST, "Your status: pending, Waiting for Approval.")
     }
@@ -124,24 +149,16 @@ const applyDriver = async (payload: IDriver) => {
 
 try {
     const { user, licenseNumber, vehicleType, location } = payload;
-    // console.log("driver ID ✅:", user);
-
-    // const inputId = payload.id
-    // console.log("Input ID 2 ✅:", inputId);
 
     const currentUser = await User.findById(user).session(session);
-    // console.log("currentUser ID 2 ✅:", currentUser);
 
     if (!currentUser) {
         throw new AppError(httpStatus.BAD_REQUEST, "User Not Found!");
     }
-    // condition for match login user === input user
-    // if (!(user === inputId)) {
-    //     throw new AppError(httpStatus.BAD_REQUEST, "login User & input User is not Match");
-    // }  
-
+    
+    // Check if driver record exists
     const existingDriver = await Driver.findOne({ user }).session(session);
-    // console.log("curDriver ID 2 ✅:", existingDriver);
+    
     if (existingDriver) {
         throw new AppError(httpStatus.BAD_REQUEST, "You are already a Driver!!");
     }
@@ -161,10 +178,25 @@ try {
     if (!payload.licenseNumber) {
         throw new AppError(httpStatus.BAD_REQUEST, "License number is required");
     }
+    
+    // Check if license plate number is already in use
+    const existingPlate = await Driver.findOne({ 'vehicleType.plateNumber': payload.vehicleType.plateNumber }).session(session);
+    if (existingPlate) {
+        throw new AppError(httpStatus.CONFLICT, "Vehicle plate number already registered. Please use a different plate number.");
+    }
+    
+    // Check if license number is already in use
+    const existingLicense = await Driver.findOne({ licenseNumber: payload.licenseNumber }).session(session);
+    if (existingLicense) {
+        throw new AppError(httpStatus.CONFLICT, "License number already registered. Please use a different license number.");
+    }
 
     // ✅ Create driver 
+    // Extract user ID as string to ensure consistent ID format
+    const userId = currentUser._id.toString();
+    
     const driverDocs = await Driver.create([{
-        user: currentUser._id,
+        user: userId, // Use string ID to avoid ObjectId conversion issues
         licenseNumber,
         vehicleType, 
         location
@@ -697,14 +729,79 @@ const driverEarnings = async (driverUserId: string) => {
 
 //✅ Update Driver
 const updateDriverDoc = async (userId: string, payload: Partial<IDriver>) => {
-
+    // First verify the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found");
+    }
+    
+    // First check if the driver record exists
     const currentDriver = await Driver.findOne({ user: userId });
-    if (!currentDriver) throw new Error("Driver not found");
+    
+    if (!currentDriver) {
+        // Create a driver record if one doesn't exist
+        // Update user role to driver if it's not already
+        if (user.role !== Role.driver) {
+            user.role = Role.driver;
+            await user.save();
+        }
+        
+        const newDriver = await Driver.create({
+            user: userId, // Use the ID directly to ensure consistency
+            licenseNumber: payload.licenseNumber || "PENDING",
+            vehicleType: payload.vehicleType || {
+                category: 'CAR',
+                make: 'Unknown',
+                model: 'Unknown',
+                year: new Date().getFullYear(),
+                plateNumber: 'PENDING'
+            },
+            location: payload.location || {
+                coordinates: [90.4125, 23.7928], // Default to Dhaka
+                address: "Dhaka, Bangladesh",
+                lastUpdated: new Date()
+            },
+            status: 'pending',
+            availability: 'offline'
+        });
+        
+        return newDriver;
+    }
 
+    // Check for potential conflicts before updating
+    if (payload.vehicleType?.plateNumber && 
+        payload.vehicleType.plateNumber !== currentDriver.vehicleType?.plateNumber) {
+        // Check if another driver already has this plate number
+        const existingPlate = await Driver.findOne({ 
+            'vehicleType.plateNumber': payload.vehicleType.plateNumber,
+            _id: { $ne: currentDriver._id } // Exclude the current driver
+        });
+        
+        if (existingPlate) {
+            throw new AppError(httpStatus.CONFLICT, "Vehicle plate number already registered. Please use a different plate number.");
+        }
+    }
+    
+    // Check license number uniqueness if changing it
+    if (payload.licenseNumber && 
+        payload.licenseNumber !== currentDriver.licenseNumber) {
+        const existingLicense = await Driver.findOne({ 
+            licenseNumber: payload.licenseNumber,
+            _id: { $ne: currentDriver._id } // Exclude the current driver
+        });
+        
+        if (existingLicense) {
+            throw new AppError(httpStatus.CONFLICT, "License number already registered. Please use a different license number.");
+        }
+    }
+    
     const updateFields: Partial<IDriver> = {};
         if (payload.licenseNumber !== undefined) updateFields.licenseNumber = payload.licenseNumber;
         if (payload.vehicleType !== undefined) updateFields.vehicleType = payload.vehicleType;
         if (payload.location !== undefined) updateFields.location = payload.location;
+        if (payload.documents !== undefined) updateFields.documents = payload.documents;
+        if (payload.additionalInfo !== undefined) updateFields.additionalInfo = payload.additionalInfo;
+    if (payload.additionalInfo !== undefined) updateFields.additionalInfo = payload.additionalInfo;
 
 
     const updatedDriver = await Driver.findByIdAndUpdate(

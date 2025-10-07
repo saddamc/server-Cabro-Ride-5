@@ -1,7 +1,7 @@
 import { model, Schema } from 'mongoose';
 
 
-import { IDocuments, IDriver, IEarnings, ILocation, IRating, IVehicleType } from './driver.interface';
+import { IAdditionalInfo, IDocuments, IDriver, IEarnings, ILocation, IRating, IVehicleType } from './driver.interface';
 
 const VehicleInfoSchema = new Schema<IVehicleType>({
   category: {
@@ -58,15 +58,30 @@ const DocumentsSchema = new Schema<IDocuments>({
     vehicleRegistration: { type: String },
     insurance: { type: String },
 },
-  {
+{
     _id: false
-  },
+},
+);
+
+const AdditionalInfoSchema = new Schema<IAdditionalInfo>({
+    experience: { type: String },
+    references: { type: String },
+},
+{
+    _id: false
+},
 );
 
 // Main Driver Schema
 const DriverSchema = new Schema<IDriver>(
     {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    user: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true,
+        get: function(val: any) { return val ? val.toString() : val; }, // Convert ObjectId to string on get
+        set: function(val: any) { return val; }  // Pass through on set
+    },
     licenseNumber: { type: String, required: true, unique: true, uppercase: true },
     vehicleType: { type: VehicleInfoSchema},
     status: {
@@ -83,6 +98,7 @@ const DriverSchema = new Schema<IDriver>(
     earnings: { type: EarningsSchema, default: () => ({}) },
     rating: { type: RatingSchema, default: () => ({}) },
     documents: { type: DocumentsSchema },
+    additionalInfo: { type: AdditionalInfoSchema },
     activeRide: { type: Schema.Types.ObjectId, ref: 'Ride', default: null },
     approvedAt: { type: Date },
     },
