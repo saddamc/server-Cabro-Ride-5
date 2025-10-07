@@ -71,11 +71,12 @@ const rideSchema = new Schema<IRide>(
         type: String,
         enum: Object.values(RIDE_STATUS),
     },
-    paymentMethod: { 
+    paymentMethod: {
         type: String,
-        enum: ['cash', 'card', 'mobile_banking', 'online'], 
+        enum: ['cash', 'card', 'mobile_banking', 'online'],
         default: 'cash'
     },
+    transactionId: { type: String },
     pin: { type: String, default: null },
     notes: String,
   },

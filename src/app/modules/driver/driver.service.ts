@@ -472,12 +472,12 @@ const updateRideStatus = async (id: string, driver: string, status?: RideStatus)
         case "completed": {
             ride.timestamps.completed = now;
 
-            // calculate duration
-            if (ride.timestamps.pickedUp) {
-            ride.duration.actual = Math.round(
-                (now.getTime() - ride.timestamps.pickedUp.getTime()) /
-                (1000 * 60)
-            );
+            // calculate duration - use pickedUp if available, otherwise use accepted time
+            const startTime = ride.timestamps.pickedUp || ride.timestamps.accepted;
+            if (startTime) {
+              ride.duration.actual = Math.round(
+                (now.getTime() - startTime.getTime()) / (1000 * 60)
+              );
             }
 
             // calculate distance
@@ -525,31 +525,52 @@ const updateRideStatus = async (id: string, driver: string, status?: RideStatus)
             { new: true, runValidators: true, session }
             )
             .populate("rider", "name email phone address")
-            .populate("driver", "licenseNumber user")
+            .populate({
+                path: "driver",
+                select: "_id licenseNumber vehicleType",
+                populate: { path: "user", select: "name email phone profilePicture" }
+            })
             .populate("payment");
 
-            // 3. 
-            const sslPayload: ISSLCommerz = {
-            address: (updatedRide?.rider as any).address,
-            email: (updatedRide?.rider as any).email,
-            phoneNumber: (updatedRide?.rider as any).phone,
-            name: (updatedRide?.rider as any).name,
-            amount,
-            transactionId,
-            };
+            // Flatten driver data
+            if (updatedRide) {
+                const rideObj = updatedRide.toObject();
+                if (rideObj.driver) {
+                    const driver = rideObj.driver as any;
+                    rideObj.driver = {
+                        _id: driver._id,
+                        name: (driver.user as any)?.name || '',
+                        email: (driver.user as any)?.email || '',
+                        phone: (driver.user as any)?.phone || '',
+                        profilePicture: (driver.user as any)?.profilePicture || '',
+                        vehicleType: driver.vehicleType
+                    } as any;
+                }
 
-            // 4️.
-            await SSLService.sslPaymentInit(sslPayload);
+                // 3.
+                const sslPayload: ISSLCommerz = {
+                address: (rideObj?.rider as any).address,
+                email: (rideObj?.rider as any).email,
+                phoneNumber: (rideObj?.rider as any).phone,
+                name: (rideObj?.rider as any).name,
+                amount,
+                transactionId,
+                };
 
-            // 5️.
-            if (ride.driver) {
-            await Driver.findByIdAndUpdate(
-                ride.driver,
-                { availability: "online", activeRide: null },
-                { session }
-            );
+                // 4️.
+                await SSLService.sslPaymentInit(sslPayload);
+
+                // 5️.
+                if (ride.driver) {
+                await Driver.findByIdAndUpdate(
+                    ride.driver,
+                    { availability: "online", activeRide: null },
+                    { session }
+                );
+                }
+
+                return rideObj;
             }
-
             break;
         }
         }
@@ -596,15 +617,15 @@ const ratingRide = async (id: string, userId: string, rating: number, feedback?:
         // Rider rating the driver
         ride.rating = {
             ...ride.rating,
-            driverRating: rating,
-            driverFeedback: feedback,
+            riderRating: rating,
+            riderFeedback: feedback,
         };
     } else if (isDriver) {
         // Driver rating the rider
         ride.rating = {
             ...ride.rating,
-            riderRating: rating,
-            riderFeedback: feedback,
+            driverRating: rating,
+            driverFeedback: feedback,
         };
     }
 
@@ -816,24 +837,45 @@ const updateDriverDoc = async (userId: string, payload: Partial<IDriver>) => {
 // ✅ Get All Drivers (Admin)
 const getAllDrivers = async () => {
     const drivers = await Driver.find({})
-        .populate('user', 'name email phone')
+        .populate('user', 'name email phone profilePicture')
         .sort({ createdAt: -1 });
 
-    return drivers.map(driver => ({
-        _id: driver._id,
-        user: driver.user,
-        licenseNumber: driver.licenseNumber,
-        vehicleType: driver.vehicleType,
-        vehicleInfo: driver.vehicleType, // Use vehicleType for vehicle info
-        isOnline: driver.availability === 'online',
-        isApproved: driver.status === 'approved',
-        isSuspended: driver.status === 'suspended',
-        rating: 0, // Default rating
-        totalRides: 0, // Will be calculated from rides
-        status: driver.status || 'pending',
-        createdAt: driver.createdAt,
-        updatedAt: driver.updatedAt
-    }));
+    // Get ride counts for all drivers in one query
+    const driverIds = drivers.map(driver => driver._id);
+    const rideCounts = await Ride.aggregate([
+        { $match: { driver: { $in: driverIds } } },
+        { $group: { _id: '$driver', totalRides: { $sum: 1 } } }
+    ]);
+
+    // Create a map for quick lookup
+    const rideCountMap = new Map();
+    rideCounts.forEach(count => {
+        rideCountMap.set(count._id.toString(), count.totalRides);
+    });
+
+    return drivers.map(driver => {
+        const driverObj = driver.toObject();
+        const totalRides = rideCountMap.get(driverObj._id.toString()) || 0;
+
+        return {
+            _id: driverObj._id,
+            name: (driverObj.user as any)?.name || '',
+            email: (driverObj.user as any)?.email || '',
+            phone: (driverObj.user as any)?.phone || '',
+            profilePicture: (driverObj.user as any)?.profilePicture || '',
+            licenseNumber: driverObj.licenseNumber,
+            vehicleType: driverObj.vehicleType,
+            vehicleInfo: driverObj.vehicleType, // Use vehicleType for vehicle info
+            isOnline: driverObj.availability === 'online',
+            isApproved: driverObj.status === 'approved',
+            isSuspended: driverObj.status === 'suspended',
+            rating: 0, // Default rating
+            totalRides,
+            status: driverObj.status || 'pending',
+            createdAt: driverObj.createdAt,
+            updatedAt: driverObj.updatedAt
+        };
+    });
 };
 
 // ✅ Search Driver

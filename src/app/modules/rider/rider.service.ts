@@ -147,14 +147,16 @@ const getMyRides = async (req: AuthRequest) => {
         .populate("rider", "name phone profilePicture")
         .populate({
             path: "driver",
-            populate: { path: "user", select: "name phone profilePicture" },
+            select: 'vehicleType user',
+            populate: { path: "user", select: "name phone email profilePicture" },
         })
+        .populate("payment", "transactionId")
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 });
 
         total = await Ride.countDocuments(query);
-    } catch (error) {
+    } catch {
         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Error fetching rides");
     }
 
@@ -171,11 +173,34 @@ const getMyRides = async (req: AuthRequest) => {
         else if (ride.status === "cancelled") grouped.cancelled.push(ride);
     });
 
+    // Flatten driver data in rides
+    const flattenedRides = rides.map(ride => {
+        const rideObj = ride.toObject();
+
+        // Ensure transactionId is available (copy from payment if needed)
+        if (!rideObj.transactionId && rideObj.payment && typeof rideObj.payment === 'object' && 'transactionId' in rideObj.payment) {
+            rideObj.transactionId = (rideObj.payment as any).transactionId;
+        }
+
+        if (rideObj.driver) {
+            const driver = rideObj.driver as any;
+            rideObj.driver = {
+                _id: driver._id,
+                name: driver.user?.name || '',
+                email: driver.user?.email || '',
+                phone: driver.user?.phone || '',
+                profilePicture: driver.user?.profilePicture || '',
+                vehicleType: driver.vehicleType
+            } as any;
+        }
+        return rideObj;
+    });
+
     return {
         total,
         page,
         limit,
-        rides,
+        rides: flattenedRides,
         grouped,
     };
 };
@@ -188,15 +213,51 @@ const getAllRide = async (page = 1, limit = 10) => {
         .populate("rider", "name phone profilePicture email")
         .populate({
             path: "driver",
-            populate: { path: "user", select: "name phone profilePicture" },
+            select: '_id vehicleType',
+            populate: { path: "user", select: "name email phone profilePicture" },
         })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 });
     const totalRides = await Ride.countDocuments();
 
+    // Flatten driver data in rides
+    const flattenedRides = rides.map(ride => {
+        const rideObj = ride.toObject();
+
+        // Calculate duration if missing for completed rides
+        if (rideObj.status === 'completed' && (!rideObj.duration?.actual || rideObj.duration?.actual === 0)) {
+            const startTime = rideObj.timestamps?.pickedUp || rideObj.timestamps?.accepted;
+            const endTime = rideObj.timestamps?.completed;
+            if (startTime && endTime) {
+                const durationMinutes = Math.round(
+                    (new Date(endTime).getTime() - new Date(startTime).getTime()) / (1000 * 60)
+                );
+                if (durationMinutes > 0) {
+                    rideObj.duration = {
+                        ...rideObj.duration,
+                        actual: durationMinutes
+                    };
+                }
+            }
+        }
+
+        if (rideObj.driver) {
+            const driver = rideObj.driver as any;
+            rideObj.driver = {
+                _id: driver._id,
+                name: (driver.user as any)?.name || '',
+                email: (driver.user as any)?.email || '',
+                phone: (driver.user as any)?.phone || '',
+                profilePicture: (driver.user as any)?.profilePicture || '',
+                vehicleType: driver.vehicleType
+            } as any;
+        }
+        return rideObj;
+    });
+
     return {
-        data: rides,
+        data: flattenedRides,
         meta: {
             total: totalRides,
             page,
@@ -212,17 +273,29 @@ const getAllBookingsForAdmin = async () => {
         .populate("rider", "name phone profilePicture email")
         .populate({
             path: "driver",
-            populate: { path: "user", select: "name phone profilePicture" },
+            select: '_id vehicleType',
+            populate: { path: "user", select: "name email phone profilePicture" },
         })
         .sort({ createdAt: -1 })
         .limit(10); // Get last 10 bookings
 
-    const formattedBookings = bookings.map(booking => ({
-        id: booking._id.toString(),
-        date: booking.createdAt.toISOString(),
-        status: booking.status,
-        amount: booking.fare?.totalFare || 0
-    }));
+    const formattedBookings = bookings.map(booking => {
+        const bookingObj = booking.toObject();
+        return {
+            id: bookingObj._id.toString(),
+            date: bookingObj.createdAt.toISOString(),
+            status: bookingObj.status,
+            amount: bookingObj.fare?.totalFare || 0,
+            driver: bookingObj.driver ? {
+                _id: (bookingObj.driver as any)._id,
+                name: (bookingObj.driver as any).user?.name || '',
+                email: (bookingObj.driver as any).user?.email || '',
+                phone: (bookingObj.driver as any).user?.phone || '',
+                profilePicture: (bookingObj.driver as any).user?.profilePicture || '',
+                vehicleType: (bookingObj.driver as any).vehicleType
+            } : null
+        };
+    });
 
     return {
         bookings: formattedBookings
@@ -318,8 +391,28 @@ const getActiveRide = async (req: AuthRequest) => {
     .populate('rider', 'name phone profilePicture')
     .populate({
         path: 'driver',
-        populate: { path: 'user', select: 'name phone profilePicture' }
-    });
+        select: '_id vehicleType user',
+        populate: { path: 'user', select: 'name email phone profilePicture' }
+    })
+    .populate('payment', 'transactionId');
+
+    // Flatten driver data if exists
+    if (activeRide && activeRide.driver) {
+        const driver = activeRide.driver as any;
+        activeRide.driver = {
+            _id: driver._id,
+            name: driver.user?.name || '',
+            email: driver.user?.email || '',
+            phone: driver.user?.phone || '',
+            profilePicture: driver.user?.profilePicture || '',
+            vehicleType: driver.vehicleType
+        };
+    }
+
+    // Ensure transactionId is available on the ride (copy from payment if needed)
+    if (activeRide && !activeRide.transactionId && activeRide.payment && typeof activeRide.payment === 'object' && 'transactionId' in activeRide.payment) {
+        activeRide.transactionId = (activeRide.payment as any).transactionId;
+    }
 
     return activeRide;
 };
@@ -430,7 +523,8 @@ const completePayment = async (id: string, userId: string, method: string) => {
         ride.paymentStatus = RIDE_STATUS.COMPLETE;
         ride.paymentMethod = method;  // Store payment method
         ride.payment = payment._id;   // Link to payment record
-        
+        ride.transactionId = transactionId;  // Store transaction ID on ride
+
         await ride.save();
 
         return ride;
@@ -448,7 +542,8 @@ const getRideById = async (id: string, userId: string) => {
         .populate("rider", "name phone profilePicture")
         .populate({
             path: "driver",
-            populate: { path: "user", select: "name phone profilePicture" },
+            select: '_id vehicleType',
+            populate: { path: "user", select: "name email phone profilePicture" },
         });
 
     if (!ride) {
@@ -464,7 +559,21 @@ const getRideById = async (id: string, userId: string) => {
         }
     }
 
-    return ride;
+    // Flatten driver data if exists
+    const rideObj = ride.toObject();
+    if (rideObj.driver) {
+        const driver = rideObj.driver as any;
+        rideObj.driver = {
+            _id: driver._id,
+            name: driver.user?.name || '',
+            email: driver.user?.email || '',
+            phone: driver.user?.phone || '',
+            profilePicture: driver.user?.profilePicture || '',
+            vehicleType: driver.vehicleType
+        };
+    }
+
+    return rideObj;
 };
 
 // ✅ Get ride volume data for dashboard (daily rides over last 30 days)

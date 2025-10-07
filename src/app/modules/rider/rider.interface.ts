@@ -26,6 +26,7 @@ export interface IRide extends Document {
   rating?: IRideRating;
   paymentStatus?: RIDE_STATUS;
   paymentMethod?: string;
+  transactionId?: string;
   pin?: string;
   notes?: string;
   createdAt: Date;

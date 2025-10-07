@@ -66,7 +66,7 @@ import { verifyToken } from "../utils/jwt";
 
 // ! new version modified 
 export const checkAuth =
-  (...authRoles: string[]) =>
+  (...authRoles: string[]) => // eslint-disable-line @typescript-eslint/no-unused-vars
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       // 1. Try from cookie
