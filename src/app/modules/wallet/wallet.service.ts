@@ -6,7 +6,7 @@ import { IAddMoneyPayload, ITransaction, IWallet, IWithdrawMoneyPayload } from '
 import { Transaction, Wallet } from './wallet.model';
 
 // Create wallet for user
-const createWallet = async (userId: Types.ObjectId): Promise<IWallet> => {
+const createWallet = async (userId: Types.ObjectId) => {
   // Check if user exists
   const userExists = await User.findById(userId);
   if (!userExists) {
@@ -36,7 +36,7 @@ const getWalletByUserId = async (userId: Types.ObjectId): Promise<IWallet> => {
 
   // If wallet doesn't exist, create one
   if (!wallet) {
-    wallet = await createWallet(userId);
+    wallet = await createWallet(new Types.ObjectId(userId));
   }
 
   return wallet;
@@ -63,8 +63,8 @@ const addMoney = async (payload: IAddMoneyPayload): Promise<{
     // Get wallet or create if not exists
     let wallet = await Wallet.findOne({ userId }).session(session);
     if (!wallet) {
-      wallet = await Wallet.create([{ userId, balance: 0, currency: 'USD' }], { session });
-      wallet = wallet[0];
+      const createdWallets = await Wallet.create([{ userId, balance: 0, currency: 'USD' }], { session });
+      wallet = createdWallets[0];
     }
 
     // Update wallet balance

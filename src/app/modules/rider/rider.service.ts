@@ -401,12 +401,12 @@ const getActiveRide = async (req: AuthRequest) => {
         const driver = activeRide.driver as any;
         activeRide.driver = {
             _id: driver._id,
-            name: driver.user?.name || '',
-            email: driver.user?.email || '',
-            phone: driver.user?.phone || '',
-            profilePicture: driver.user?.profilePicture || '',
+            name: (driver.user as any)?.name || '',
+            email: (driver.user as any)?.email || '',
+            phone: (driver.user as any)?.phone || '',
+            profilePicture: (driver.user as any)?.profilePicture || '',
             vehicleType: driver.vehicleType
-        };
+        } as any;
     }
 
     // Ensure transactionId is available on the ride (copy from payment if needed)
@@ -565,12 +565,12 @@ const getRideById = async (id: string, userId: string) => {
         const driver = rideObj.driver as any;
         rideObj.driver = {
             _id: driver._id,
-            name: driver.user?.name || '',
-            email: driver.user?.email || '',
-            phone: driver.user?.phone || '',
-            profilePicture: driver.user?.profilePicture || '',
+            name: (driver.user as any)?.name || '',
+            email: (driver.user as any)?.email || '',
+            phone: (driver.user as any)?.phone || '',
+            profilePicture: (driver.user as any)?.profilePicture || '',
             vehicleType: driver.vehicleType
-        };
+        } as any;
     }
 
     return rideObj;
