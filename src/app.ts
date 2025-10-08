@@ -17,6 +17,8 @@ app.use(cors({
   credentials: true
 }));
 
+console.log("FRONTEND_URL:", envVars.FRONTEND_URL); // Debug log
+
 app.use(expressSession(
   {
     secret: envVars.EXPRESS_SESSION_SECRET,
