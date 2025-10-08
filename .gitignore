@@ -10,4 +10,5 @@ dist
 .env.*
 .env.local
 .env.production
-.env.development
+.env.development.env
+production.env
