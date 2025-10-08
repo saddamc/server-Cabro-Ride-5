@@ -4,3 +4,10 @@ dist
 .vercel
 .env.local
 .env.production
+*.env
+# Ignore environment files
+.env
+.env.*
+.env.local
+.env.production
+.env.development
