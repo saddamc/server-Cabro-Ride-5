@@ -11,32 +11,6 @@ import { router } from "./app/routes";
 
 const app = express();
 
-
-const allowedOrigins = [
-  'http://localhost:5173', 
-  'https://cabro.vercel.app',
-  envVars.FRONTEND_URL // In case it's different from the hardcoded values
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl requests, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      console.log("Blocked origin:", origin); // Debug which origins are being blocked
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
-console.log("Allowed origins:", allowedOrigins); // Debug log
-
 app.use(expressSession(
   {
     secret: envVars.EXPRESS_SESSION_SECRET,
@@ -45,16 +19,17 @@ app.use(expressSession(
   }
 ));
 
-// Passport for google login
 app.use(passport.initialize());
 app.use(passport.session());
-
 app.use(cookieParser()); 
 app.use(express.json()); 
 app.set("trust proxy", 1);
-app.use(express.urlencoded({ extended: true }));  // 
+app.use(express.urlencoded({extended: true}))
 
-
+app.use(cors({
+  origin: ["https://cabro.vercel.app", "http://localhost:5173"],
+  credentials: true,
+}));
 
 
 
