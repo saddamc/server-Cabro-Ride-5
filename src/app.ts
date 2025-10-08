@@ -12,12 +12,30 @@ import { router } from "./app/routes";
 const app = express();
 
 
+const allowedOrigins = [
+  'http://localhost:5173', 
+  'https://cabro.vercel.app',
+  envVars.FRONTEND_URL // In case it's different from the hardcoded values
+];
+
 app.use(cors({
-  origin: envVars.FRONTEND_URL,
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      console.log("Blocked origin:", origin); // Debug which origins are being blocked
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-console.log("FRONTEND_URL:", envVars.FRONTEND_URL); // Debug log
+console.log("Allowed origins:", allowedOrigins); // Debug log
 
 app.use(expressSession(
   {
