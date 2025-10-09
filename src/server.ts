@@ -130,8 +130,6 @@ import mongoose from "mongoose";
 import app from "./app";
 import { envVars } from "./app/config/env";
 import { connectRedis } from "./app/config/redis.config";
-import { seedSampleData } from "./app/utils/seedSampleData";
-import { seedSuperAdmin } from "./app/utils/seedSuperAdmin";
 
 let server: Server;
 const isProd = process.env.NODE_ENV === "production";
@@ -168,8 +166,8 @@ may fallback to in-memory, which is NOT recommended for prod.
     });
 
     // 4. Seed admin and sample data if needed
-    await seedSuperAdmin();
-    await seedSampleData();
+    // await seedSuperAdmin();
+    // await seedSampleData();
 
   } catch (error) {
     console.error("❌ Failed to start server:", error);
@@ -207,7 +205,9 @@ Shutting down the server gracefully...
 };
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+if (isProd) {
+  process.on("SIGINT", () => shutdown("SIGINT"));
+}
 
 // Extra safety for prod
 if (isProd) {

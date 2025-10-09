@@ -19,6 +19,7 @@ import { AuthServices } from "./auth.service";
 // ✅ User credientialsLogin
 const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
+    console.log("Login attempt - NODE_ENV:", process.env.NODE_ENV, "Origin:", req.headers.origin, "Email:", req.body.email);
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
@@ -35,6 +36,7 @@ const credentialsLogin = catchAsync(
     const { password: pass, ...rest } = user.toObject();
 
     setAuthCookie(res, userTokens);
+    console.log("Login successful for email:", email, "Cookies set");
 
     const redirectTo = !user.isVerified ? "/verify" : "/";
 
@@ -129,12 +131,12 @@ const logout = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     res.clearCookie("accessToken", {
       httpOnly: true,
-      secure: false,
+      secure: true,
       sameSite: "lax",
     });
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: false,
+      secure: true,
       sameSite: "lax",
     });
 
